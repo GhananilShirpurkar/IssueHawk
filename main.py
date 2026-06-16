@@ -124,14 +124,23 @@ def main():
     elif args.test_mail:
         send_test_email()
     elif args.schedule:
-        logger.info(f"Starting scheduler: trigger cron, day={config.SCHEDULE_DAY}, hour={config.SCHEDULE_HOUR}:00")
-        scheduler = BlockingScheduler()
+        logger.info(
+            f"Starting scheduler: trigger cron, day_of_week={config.SCHEDULE_DAY}, "
+            f"time={config.SCHEDULE_HOUR:02d}:{config.SCHEDULE_MINUTE:02d} ({config.SCHEDULE_TIMEZONE})"
+        )
+        scheduler = BlockingScheduler(timezone=config.SCHEDULE_TIMEZONE)
+        
+        cron_kwargs = {
+            "hour": config.SCHEDULE_HOUR,
+            "minute": config.SCHEDULE_MINUTE
+        }
+        if config.SCHEDULE_DAY not in ("daily", "*"):
+            cron_kwargs["day_of_week"] = config.SCHEDULE_DAY
+            
         scheduler.add_job(
             run_pipeline,
             trigger="cron",
-            day_of_week=config.SCHEDULE_DAY,
-            hour=config.SCHEDULE_HOUR,
-            minute=0
+            **cron_kwargs
         )
         try:
             scheduler.start()

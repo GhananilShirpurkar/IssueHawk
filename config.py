@@ -9,10 +9,16 @@ GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 RECIPIENT_EMAIL = os.getenv("RECIPIENT_EMAIL")
 
-# Schedule settings: default to Mon 8:00 AM if not set
+# Schedule settings: default to everyday at 18:30 (6:30 PM) Asia/Kolkata
 try:
-    SCHEDULE_HOUR = int(os.getenv("SCHEDULE_HOUR", "8"))
+    SCHEDULE_HOUR = int(os.getenv("SCHEDULE_HOUR", "18"))
 except ValueError:
-    SCHEDULE_HOUR = 8
+    SCHEDULE_HOUR = 18
 
-SCHEDULE_DAY = os.getenv("SCHEDULE_DAY", "mon")
+try:
+    SCHEDULE_MINUTE = int(os.getenv("SCHEDULE_MINUTE", "30"))
+except ValueError:
+    SCHEDULE_MINUTE = 30
+
+SCHEDULE_DAY = os.getenv("SCHEDULE_DAY", "daily")
+SCHEDULE_TIMEZONE = os.getenv("SCHEDULE_TIMEZONE", "Asia/Kolkata")

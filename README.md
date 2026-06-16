@@ -57,8 +57,10 @@ RECIPIENT_EMAIL="your-recipient-email@domain.com"
 
 ### 3. Customize Curation Preferences
 Configure your execution cadence, target languages, and scheduling inside `config.py`:
-*   `SCHEDULE_HOUR`: The hour of the day to send reports (0–23).
-*   `SCHEDULE_DAY`: The day of the week for weekly runs (e.g., `"mon"`).
+*   `SCHEDULE_DAY`: Cadence of execution (e.g., `"daily"` or `"mon"`).
+*   `SCHEDULE_HOUR`: The hour of the day to send reports (0–23, e.g., `18`).
+*   `SCHEDULE_MINUTE`: The minute of the hour (0–59, e.g., `30`).
+*   `SCHEDULE_TIMEZONE`: Timezone of execution (e.g., `"Asia/Kolkata"`).
 
 The Gemini scoring profile is defined in `tools/llm.py` and is set to match intermediate developers with backgrounds in **FastAPI**, **LangGraph**, **React**, **Python async**, and **AI Agents**.
 
@@ -101,7 +103,7 @@ This runs the agent on GitHub's free tier without keeping any servers active. Th
    * `GITHUB_TOKEN`
    * `RESEND_API_KEY`
    * `RECIPIENT_EMAIL`
-3. The workflow defined in `.github/workflows/curate.yml` runs every Monday at 08:00 UTC and automatically pushes updated database state (`data/memory.db`) back to main.
+3. The workflow defined in `.github/workflows/curate.yml` runs everyday at 13:00 UTC (6:30 PM IST) and automatically pushes updated database state (`data/memory.db`) back to main.
 
 ### Option B: Containerized Docker Deployment
 Ideal for self-hosted instances on Railway, Render, Fly.io, or your own VPS.
