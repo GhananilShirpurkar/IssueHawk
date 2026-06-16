@@ -9,186 +9,324 @@ import config
 
 logger = logging.getLogger(__name__)
 
-def convert_markdown_to_html(markdown_content: str) -> str:
-    """Converts the specific IssueHawk markdown report to styled, clean HTML."""
+def parse_markdown_report(markdown_content: str):
+    """Parses structured IssueHawk markdown report into clean data structures."""
     lines = markdown_content.split("\n")
-    html_body = []
+    title = "IssueHawk Curation Report"
+    subtitle = "Curation of top open-source issues matching your profile."
+    issues = []
     
-    in_list = False
+    current_issue = None
     
     for line in lines:
         line = line.strip()
         if not line:
-            if in_list:
-                html_body.append("</ul>")
-                in_list = False
             continue
             
-        # Parse main header
         if line.startswith("# "):
             title = line[2:]
-            html_body.append(f"<h1>{title}</h1>")
             continue
-            
-        # Parse subtitle (usually the second line of the report)
         if line.startswith("Curation of top"):
-            html_body.append(f"<div class='subtitle'>{line}</div>")
+            subtitle = line
             continue
             
-        # Parse horizontal rule
-        if line == "---":
-            if in_list:
-                html_body.append("</ul>")
-                in_list = False
-            html_body.append("<hr>")
+        # Match issue header: ### Rank. [Title](URL) — Score: X/10
+        header_match = re.match(r"^###\s+(\d+)\.\s+\[(.*?)\]\((.*?)\)\s+—\s+Score:\s+(\d+)/10", line)
+        if header_match:
+            if current_issue:
+                issues.append(current_issue)
+            current_issue = {
+                "rank": header_match.group(1),
+                "title": header_match.group(2),
+                "url": header_match.group(3),
+                "score": int(header_match.group(4)),
+                "repo": "",
+                "labels": [],
+                "why": ""
+            }
             continue
             
-        # Parse issue headers: ### Rank. [Title](URL) — Score: X/10
-        issue_header_match = re.match(r"^###\s+(\d+)\.\s+\[(.*?)\]\((.*?)\)\s+—\s+Score:\s+(\d+/10)$", line)
-        if issue_header_match:
-            if in_list:
-                html_body.append("</ul>")
-                in_list = False
-            rank = issue_header_match.group(1)
-            title = issue_header_match.group(2)
-            url = issue_header_match.group(3)
-            score = issue_header_match.group(4)
-            html_body.append(
-                f"<div class='issue-card'>"
-                f"<h3>{rank}. <a href='{url}'>{title}</a><span class='score-badge'>Score: {score}</span></h3>"
-            )
+        # Match Repository: **Repository:** `repo`
+        repo_match = re.match(r"^\*\*Repository:\*\*\s+`(.*?)`", line)
+        if repo_match and current_issue:
+            current_issue["repo"] = repo_match.group(1)
             continue
             
-        # End of issue card handler (when separator occurs or next issue card starts)
-        # Parse metadata lines: **Repository:** `repo`
-        repo_match = re.match(r"\*\*Repository:\*\*\s+`(.*?)`", line)
-        if repo_match:
-            repo = repo_match.group(1)
-            html_body.append(f"<p><strong>Repository:</strong> <code>{repo}</code></p>")
+        # Match Labels: **Labels:** labels
+        labels_match = re.match(r"^\*\*Labels:\*\*\s+(.*)", line)
+        if labels_match and current_issue:
+            labels_str = labels_match.group(1)
+            if labels_str.lower() != "none":
+                current_issue["labels"] = [l.strip() for l in labels_str.split(",")]
+            else:
+                current_issue["labels"] = []
             continue
             
-        # Parse labels: **Labels:** label1, label2
-        labels_match = re.match(r"\*\*Labels:\*\*\s+(.*)", line)
-        if labels_match:
-            labels = labels_match.group(1)
-            html_body.append(f"<p><strong>Labels:</strong> {labels}</p>")
+        # Match Why this fits you: **Why this fits you:** explanation
+        fit_match = re.match(r"^\*\*Why this fits you:\*\*\s+(.*)", line)
+        if fit_match and current_issue:
+            current_issue["why"] = fit_match.group(1)
             continue
             
-        # Parse why it fits: **Why this fits you:** explanation
-        fits_match = re.match(r"\*\*Why this fits you:\*\*\s+(.*)", line)
-        if fits_match:
-            explanation = fits_match.group(1)
-            html_body.append(f"<p><strong>Why this fits you:</strong> {explanation}</p></div>")
-            continue
-            
-        # Fallback line formatting (handle bolding and code blocks inline)
-        formatted_line = line
-        formatted_line = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", formatted_line)
-        formatted_line = re.sub(r"`(.*?)`", r"<code>\1</code>", formatted_line)
+    if current_issue:
+        issues.append(current_issue)
         
-        html_body.append(f"<p>{formatted_line}</p>")
+    return title, subtitle, issues
+
+def convert_markdown_to_html(markdown_content: str) -> str:
+    """Converts parsed markdown into a premium-styled responsive HTML newsletter."""
+    title, subtitle, issues = parse_markdown_report(markdown_content)
+    
+    content_html = ""
+    if not issues:
+        # Fallback for simple markdown messages (like test emails)
+        body_html = []
+        for line in markdown_content.split("\n"):
+            line = line.strip()
+            if not line or line.startswith("# ") or line.startswith("---") or "curation of top" in line.lower():
+                continue
+            # Basic styling substitutions
+            line = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", line)
+            line = re.sub(r"`(.*?)`", r"<code>\1</code>", line)
+            if line.startswith("* "):
+                body_html.append(f'<li style="margin-bottom: 8px;">{line[2:]}</li>')
+            else:
+                body_html.append(f'<p style="line-height: 1.5; font-size: 14px; margin-bottom: 12px;">{line}</p>')
         
-    if in_list:
-        html_body.append("</ul>")
+        content_html = "".join(body_html)
+        if "<li>" in content_html:
+            content_html = f'<ul style="padding-left: 20px; font-size: 14px; margin-bottom: 16px;">{content_html}</ul>'
+    else:
+        issues_html = []
+        for issue in issues:
+            # Determine score styling
+            score = issue["score"]
+            if score >= 8:
+                score_class = "score-high"
+            elif score >= 6:
+                score_class = "score-med"
+            else:
+                score_class = "score-low"
+                
+            # Build labels HTML
+            labels_html = ""
+            if issue["labels"]:
+                labels_html = '<div class="label-container">' + "".join(
+                    f'<span class="label-tag">{label}</span>' for label in issue["labels"]
+                ) + '</div>'
+                
+            # Build issue card template
+            card = f"""
+            <div class="issue-card">
+              <div class="issue-title-row">
+                <h3 class="issue-title">
+                  <span class="rank-num">#{issue["rank"]}</span> 
+                  <a href="{issue["url"]}" target="_blank">{issue["title"]}</a>
+                </h3>
+                <span class="score-badge {score_class}">{score}/10 Match</span>
+              </div>
+              <div class="meta-info">
+                <span class="repo-tag">📁 {issue["repo"]}</span>
+                {labels_html}
+              </div>
+              <div class="fit-callout">
+                <span class="fit-label">Why this fits you</span>
+                <p>{issue["why"]}</p>
+              </div>
+            </div>
+            """
+            issues_html.append(card)
+        content_html = "".join(issues_html)
         
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <style>
-        body {{
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-          color: #333333;
-          background-color: #f4f6f8;
-          padding: 20px;
-          margin: 0;
-        }}
-        .container {{
-          max-width: 600px;
-          margin: 0 auto;
-          background: #ffffff;
-          padding: 30px;
-          border-radius: 10px;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-          border: 1px solid #e1e3e6;
-        }}
-        h1 {{
-          font-size: 22px;
-          color: #1c1d1f;
-          margin-top: 0;
-          border-bottom: 2px solid #5c6ac4;
-          padding-bottom: 10px;
-        }}
-        .subtitle {{
-          font-size: 14px;
-          color: #6d7175;
-          margin-top: -6px;
-          margin-bottom: 20px;
-          font-style: italic;
-        }}
-        .issue-card {{
-          margin-bottom: 20px;
-          padding-bottom: 15px;
-          border-bottom: 1px solid #f1f2f4;
-        }}
-        .issue-card:last-of-type {{
-          border-bottom: none;
-        }}
-        h3 {{
-          font-size: 16px;
-          margin-top: 0;
-          margin-bottom: 8px;
-          color: #1c1d1f;
-        }}
-        h3 a {{
-          color: #008060;
-          text-decoration: none;
-        }}
-        h3 a:hover {{
-          text-decoration: underline;
-        }}
-        .score-badge {{
-          display: inline-block;
-          background: #e3f1df;
-          color: #008060;
-          font-size: 11px;
-          font-weight: 600;
-          padding: 2px 6px;
-          border-radius: 4px;
-          margin-left: 8px;
-          vertical-align: middle;
-        }}
-        p {{
-          margin: 4px 0;
-          font-size: 14px;
-          line-height: 1.4;
-          color: #454f5b;
-        }}
-        strong {{
-          color: #212b36;
-        }}
-        code {{
-          background: #f4f6f8;
-          padding: 2px 4px;
-          border-radius: 4px;
-          font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
-          font-size: 12px;
-        }}
-        hr {{
-          border: 0;
-          border-top: 1px solid #e1e3e6;
-          margin: 20px 0;
-        }}
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        {"".join(html_body)}
-      </div>
-    </body>
-    </html>
-    """
+    # Full email template
+    html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {{
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f1f5f9;
+      color: #334155;
+    }}
+    .container {{
+      max-width: 600px;
+      margin: 30px auto;
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      overflow: hidden;
+    }}
+    .header {{
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      padding: 35px 24px;
+      color: #ffffff;
+      text-align: center;
+    }}
+    .badge {{
+      display: inline-block;
+      padding: 4px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      border-radius: 100px;
+      margin-bottom: 12px;
+    }}
+    .header h1 {{
+      font-size: 24px;
+      margin: 0 0 8px 0;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }}
+    .header p {{
+      font-size: 14px;
+      margin: 0;
+      opacity: 0.9;
+    }}
+    .content {{
+      padding: 24px;
+      background-color: #ffffff;
+    }}
+    .issue-card {{
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+    }}
+    .issue-title-row {{
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }}
+    .issue-title {{
+      font-size: 15px;
+      font-weight: 700;
+      margin: 0;
+      line-height: 1.4;
+      flex: 1;
+    }}
+    .rank-num {{
+      color: #6366f1;
+      margin-right: 4px;
+    }}
+    .issue-title a {{
+      color: #0f172a;
+      text-decoration: none;
+    }}
+    .issue-title a:hover {{
+      color: #4f46e5;
+      text-decoration: underline;
+    }}
+    .score-badge {{
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+      margin-left: 12px;
+    }}
+    .score-high {{
+      background-color: #dcfce7;
+      color: #15803d;
+    }}
+    .score-med {{
+      background-color: #dbeafe;
+      color: #1d4ed8;
+    }}
+    .score-low {{
+      background-color: #fef3c7;
+      color: #b45309;
+    }}
+    .meta-info {{
+      margin-bottom: 12px;
+      font-size: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }}
+    .repo-tag {{
+      color: #475569;
+      font-weight: 600;
+      background-color: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }}
+    .label-container {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }}
+    .label-tag {{
+      font-size: 10px;
+      background-color: #f8fafc;
+      color: #64748b;
+      padding: 1px 5px;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+    }}
+    .fit-callout {{
+      background-color: #faf5ff;
+      border-left: 3px solid #8b5cf6;
+      padding: 10px 12px;
+      border-radius: 0 6px 6px 0;
+    }}
+    .fit-callout p {{
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.4;
+      color: #5b21b6;
+    }}
+    .fit-label {{
+      font-weight: 700;
+      color: #7c3aed;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+      display: block;
+    }}
+    .footer {{
+      text-align: center;
+      padding: 20px;
+      font-size: 12px;
+      color: #64748b;
+      background-color: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+    }}
+    .footer p {{
+      margin: 4px 0;
+    }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="badge">🤖 Automated Curation</span>
+      <h1>{title}</h1>
+      <p>{subtitle}</p>
+    </div>
+    <div class="content">
+      {content_html}
+    </div>
+    <div class="footer">
+      <p>Sent by <strong>IssueHawk</strong> Autonomous Agent</p>
+      <p>© {config.SCHEDULE_DAY.upper()} Curation Cadence</p>
+    </div>
+  </div>
+</body>
+</html>
+"""
     return html_content
 
 def send_email(subject: str, body_markdown: str) -> bool:
@@ -222,7 +360,7 @@ def send_email(subject: str, body_markdown: str) -> bool:
     
     logger.info(f"Sending email to {recipient} via Resend...")
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=15)
+        response = requests.post(url, json=payload, headers=headers, timeout=30)
         if response.ok:
             data = response.json()
             logger.info(f"Email sent successfully! Message ID: {data.get('id')}")
@@ -233,3 +371,4 @@ def send_email(subject: str, body_markdown: str) -> bool:
     except Exception as e:
         logger.error(f"Error calling Resend API: {e}")
         return False
+
