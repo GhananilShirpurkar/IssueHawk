@@ -100,7 +100,7 @@ This runs the agent on GitHub's free tier without keeping any servers active. Th
 1. Push your repository to GitHub.
 2. In your GitHub repository settings, go to **Settings > Secrets and variables > Actions** and add the following repository secrets:
    * `GEMINI_API_KEY`
-   * `GITHUB_TOKEN`
+   * `ACCESS_TOKEN_GITHUB`
    * `RESEND_API_KEY`
    * `RECIPIENT_EMAIL`
 3. The workflow defined in `.github/workflows/curate.yml` runs everyday at 13:00 UTC (6:30 PM IST) and automatically pushes updated database state (`data/memory.db`) back to main.
