@@ -33,8 +33,10 @@ def render_newsletter_html(
         subtitle=subtitle,
         issues=issues,
         profile_name=active_profile_name,
+        profile=prof,
         cadence=active_cadence
     )
+
 
 def render_simple_html(title: str, text_content: str) -> str:
     """Fallback HTML renderer for simple text or verification emails."""
