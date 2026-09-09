@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0f172a;
+      color: #334155;
+    }
+    .wrapper {
+      background-color: #0f172a;
+      padding: 30px 10px;
+    }
+    .container {
+      max-width: 620px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 14px;
+      border: 1px solid #1e293b;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+      padding: 36px 24px;
+      color: #ffffff;
+      text-align: center;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.15);
+      color: #e0e7ff;
+      border-radius: 100px;
+      margin-bottom: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .header h1 {
+      font-size: 26px;
+      margin: 0 0 8px 0;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .header p {
+      font-size: 14px;
+      margin: 0;
+      color: #c7d2fe;
+    }
+    .content {
+      padding: 24px;
+      background-color: #f8fafc;
+    }
+    .issue-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+    }
+    .issue-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .issue-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0;
+      line-height: 1.4;
+      flex: 1;
+    }
+    .rank-num {
+      color: #4f46e5;
+      margin-right: 4px;
+    }
+    .issue-title a {
+      color: #0f172a;
+      text-decoration: none;
+    }
+    .issue-title a:hover {
+      color: #4f46e5;
+      text-decoration: underline;
+    }
+    .score-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      margin-left: 12px;
+    }
+    .score-high {
+      background-color: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    .score-med {
+      background-color: #e0e7ff;
+      color: #3730a3;
+      border: 1px solid #c7d2fe;
+    }
+    .score-low {
+      background-color: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+    .meta-info {
+      margin-bottom: 14px;
+      font-size: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+    .repo-tag {
+      color: #334155;
+      font-weight: 600;
+      background-color: #f1f5f9;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+    }
+    .diff-tag {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: capitalize;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background-color: #f3f4f6;
+      color: #4b5563;
+    }
+    .label-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .label-tag {
+      font-size: 10px;
+      background-color: #ffffff;
+      color: #64748b;
+      padding: 2px 6px;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+    }
+    .fit-callout {
+      background-color: #faf5ff;
+      border-left: 3px solid #8b5cf6;
+      padding: 12px 14px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 10px;
+    }
+    .fit-callout p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #581c87;
+    }
+    .fit-label {
+      font-weight: 700;
+      color: #7c3aed;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+      display: block;
+    }
+    .hint-callout {
+      background-color: #f0fdf4;
+      border-left: 3px solid #22c55e;
+      padding: 12px 14px;
+      border-radius: 0 8px 8px 0;
+    }
+    .hint-callout p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #14532d;
+    }
+    .hint-label {
+      font-weight: 700;
+      color: #16a34a;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+      display: block;
+    }
+    .footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 12px;
+      color: #64748b;
+      background-color: #ffffff;
+      border-top: 1px solid #e2e8f0;
+    }
+    .footer p {
+      margin: 4px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <div class="header">
+        <div style="margin-bottom: 14px;">
+          <svg width="48" height="48" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: inline-block; vertical-align: middle;">
+            <rect width="120" height="120" rx="28" fill="#0b0f19" />
+            <rect width="118" height="118" x="1" y="1" rx="27" stroke="rgba(255,255,255,0.18)" stroke-width="1.5" />
+            <g transform="translate(4, 10)">
+              <path d="M 12 20 L 68 20 L 45 40 L 22 40 Z" fill="#6366f1" />
+              <path d="M 8 44 L 68 44 L 50 64 L 18 64 Z" fill="#6366f1" opacity="0.95" />
+              <path d="M 22 68 L 66 68 L 48 92 L 32 92 Z" fill="#6366f1" opacity="0.9" />
+              <path d="M 45 20 L 80 20 C 92 20 102 30 102 42 C 102 52 107 62 114 68 C 104 72 92 75 84 68 C 77 62 74 58 70 58 L 45 20 Z" fill="#6366f1" />
+              <path d="M 90 42 C 100 42 112 50 117 68 C 108 70 94 66 88 58 Z" fill="#38bdf8" />
+              <g transform="translate(77, 38)">
+                <circle cx="0" cy="0" r="10" stroke="#06b6d4" stroke-width="2.5" fill="#0b0f19" />
+                <circle cx="0" cy="0" r="4" fill="#38bdf8" />
+                <line x1="-14" y1="0" x2="-8" y2="0" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+                <line x1="8" y1="0" x2="14" y2="0" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+                <line x1="0" y1="-14" x2="0" y2="-8" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+                <line x1="0" y1="8" x2="0" y2="14" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+              </g>
+            </g>
+          </svg>
+        </div>
+        <div><span class="badge">ISSUEHAWK INTELLIGENCE</span></div>
+        <h1>{{ title }}</h1>
+        <p>{{ subtitle }}</p>
+      </div>
+      <div class="content">
+        {% if not issues %}
+        <div style="text-align: center; padding: 40px 20px; color: #64748b;">
+          <p style="font-size: 16px; margin-bottom: 8px;">No new issues met the criteria today.</p>
+          <p style="font-size: 13px;">We'll check again on the next scheduled run.</p>
+        </div>
+        {% else %}
+          {% for issue in issues %}
+          <div class="issue-card">
+            <div class="issue-title-row">
+              <h3 class="issue-title">
+                <span class="rank-num">#{{ loop.index }}</span>
+                <a href="{{ issue.url }}" target="_blank">{{ issue.title }}</a>
+              </h3>
+              {% if issue.score >= 8 %}
+                <span class="score-badge score-high">{{ issue.score }}/10 Match</span>
+              {% elif issue.score >= 6 %}
+                <span class="score-badge score-med">{{ issue.score }}/10 Match</span>
+              {% else %}
+                <span class="score-badge score-low">{{ issue.score }}/10 Match</span>
+              {% endif %}
+            </div>
+            
+            <div class="meta-info">
+              <span class="repo-tag">📁 {{ issue.repo }}</span>
+              {% if issue.difficulty %}
+                <span class="diff-tag">🎯 {{ issue.difficulty }}</span>
+              {% endif %}
+              {% if issue.labels %}
+                <div class="label-container">
+                  {% for label in issue.labels %}
+                    <span class="label-tag">{{ label }}</span>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="fit-callout">
+              <span class="fit-label">Why this fits you</span>
+              <p>{{ issue.explanation }}</p>
+            </div>
+            
+            {% if issue.implementation_hint %}
+            <div class="hint-callout">
+              <span class="hint-label">💡 Where to start</span>
+              <p>{{ issue.implementation_hint }}</p>
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+      <div class="footer">
+        <p>Curated automatically for <strong>{{ profile_name }}</strong></p>
+        <p>Cadence: <strong>{{ cadence|upper }}</strong> | Powered by Gemini 2.5 Flash</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

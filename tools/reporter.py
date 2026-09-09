@@ -1,14 +1,20 @@
 import os
 import logging
 from datetime import datetime
+from typing import List, Dict, Any, Tuple, Optional
+from tools.profile import load_profile
 
 logger = logging.getLogger(__name__)
 
 REPORTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "reports")
 
-def generate_markdown_report(issues: list[dict], limit: int = 15) -> tuple[str, str]:
+def generate_markdown_report(
+    issues: List[Dict[str, Any]], 
+    limit: int = 15,
+    profile_name: Optional[str] = None
+) -> Tuple[str, str]:
     """
-    Generate a formatted markdown report of the top scored issues and save it to the reports/ directory.
+    Generate a formatted markdown report of the top scored issues and save it to reports/ directory.
     Returns a tuple of (saved_file_path, markdown_content).
     """
     os.makedirs(REPORTS_DIR, exist_ok=True)
@@ -16,10 +22,12 @@ def generate_markdown_report(issues: list[dict], limit: int = 15) -> tuple[str, 
     top_issues = issues[:limit]
     date_str = datetime.now().strftime("%Y-%m-%d")
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    prof = load_profile()
+    active_profile = profile_name or prof.name
     
     markdown_lines = [
-        f"# IssueHawk Daily Report — {date_str}",
-        "Curation of top open-source issues matching your profile.",
+        f"# IssueHawk Curation Report — {date_str}",
+        f"Curated for **{active_profile}** ({len(top_issues)} Issues Selected)",
         "",
         "---",
         ""
@@ -33,18 +41,21 @@ def generate_markdown_report(issues: list[dict], limit: int = 15) -> tuple[str, 
             url = issue.get("url", "#")
             repo = issue.get("repo", "Unknown Repo")
             score = issue.get("score", 0)
+            difficulty = issue.get("difficulty", "intermediate")
             explanation = issue.get("explanation", "No explanation provided.")
+            hint = issue.get("implementation_hint", "")
             labels = ", ".join(issue.get("labels", [])) or "None"
             
-            markdown_lines.extend([
-                f"### {idx}. [{title}]({url}) — Score: {score}/10",
+            entry = [
+                f"### {idx}. [{title}]({url}) — Score: {score}/10 [{difficulty.upper()}]",
                 f"**Repository:** `{repo}`",
                 f"**Labels:** {labels}",
-                f"**Why this fits you:** {explanation}",
-                "",
-                "---",
-                ""
-            ])
+                f"**Why this fits you:** {explanation}"
+            ]
+            if hint:
+                entry.append(f"**Where to start:** {hint}")
+            entry.extend(["", "---", ""])
+            markdown_lines.extend(entry)
             
     markdown_content = "\n".join(markdown_lines)
     

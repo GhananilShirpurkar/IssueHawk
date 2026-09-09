@@ -3,17 +3,26 @@ import os
 import logging
 from google import genai
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
+from tools.profile import load_profile, build_system_prompt, DeveloperProfile
 
 logger = logging.getLogger(__name__)
 
 class IssueScore(BaseModel):
     url: str = Field(description="The exact URL of the issue being scored")
     score: int = Field(description="Relevance score from 1 to 10 based on the user's stack and preferences")
-    explanation: str = Field(description="A concise 1-line explanation of why this issue fits the user's profile and skill level")
+    explanation: str = Field(description="A concise 1-line explanation of why this issue fits the developer's profile and skill level")
+    implementation_hint: str = Field(
+        default="Review the issue description and explore the repository codebase.",
+        description="A 1-2 sentence actionable suggestion on where in the code to start or how to implement a fix."
+    )
+    difficulty: str = Field(
+        default="intermediate",
+        description="Estimated difficulty: beginner, intermediate, or advanced"
+    )
 
 class IssueScoreBatch(BaseModel):
     scores: List[IssueScore]
@@ -29,31 +38,17 @@ def get_gemini_client():
         _client = genai.Client(api_key=api_key)
     return _client
 
-SYSTEM_PROMPT = """
-You are a career mentor and senior software architect. Your task is to evaluate open-source GitHub issues and score how relevant they are to the User's Profile.
-
-User Profile:
-- Stack: FastAPI, LangGraph, React, RAG pipelines, Python async, agents
-- Skill level: Intermediate (wants challenging but not impossible issues)
-- Preference: Backend-heavy, AI/ML adjacent, Python or JS/TS repos preferred
-
-For each issue, assign a relevance score from 1 to 10:
-- 10: Perfect fit. Involves Python, FastAPI, LangGraph, agentic frameworks, or RAG/vector-database logic. Challenging but fits an intermediate dev.
-- 7-9: Strong fit. Backend Python/JS/TS, asynchronous coding, React, or standard web application backend.
-- 4-6: Neutral fit. General Python/JS/TS issue, or standard frontend without React/AI relevance.
-- 1-3: Poor fit. Other languages (Go, C++, Rust, C#), DevOps/infra configuration only, trivial documentation tasks, or extremely complex/unreachable tasks.
-
-Also write a concise, 1-line explanation of why this issue fits or doesn't fit the user.
-"""
-
-def score_issues(issues: List[dict]) -> List[dict]:
+def score_issues(issues: List[dict], profile: Optional[DeveloperProfile] = None) -> List[dict]:
     """
-    Score a list of issues using Gemini in batches.
-    Each issue dictionary is updated with a 'score' and 'explanation'.
+    Score a list of issues using Gemini in batches using the dynamic developer profile.
+    Each issue dictionary is updated with 'score', 'explanation', 'implementation_hint', and 'difficulty'.
     """
     if not issues:
         return []
         
+    dev_profile = profile or load_profile()
+    system_prompt = build_system_prompt(dev_profile)
+    
     client = get_gemini_client()
     if not config.GEMINI_API_KEY:
         logger.error("Skipping LLM scoring: GEMINI_API_KEY is not set.")
@@ -61,6 +56,8 @@ def score_issues(issues: List[dict]) -> List[dict]:
         for issue in issues:
             issue["score"] = 5
             issue["explanation"] = "Default score (no Gemini API key provided)"
+            issue["implementation_hint"] = "Configure GEMINI_API_KEY to receive AI implementation hints."
+            issue["difficulty"] = dev_profile.skill_level
         return issues
 
     scored_issues_map = {}
@@ -79,10 +76,10 @@ def score_issues(issues: List[dict]) -> List[dict]:
             issues_text += f"Repo: {issue.get('repo')}\n"
             issues_text += f"Title: {issue.get('title')}\n"
             issues_text += f"Labels: {', '.join(issue.get('labels', []))}\n"
-            issues_text += f"Body Snippet: {(issue.get('body') or '')[:300]}...\n"
+            issues_text += f"Body Snippet: {(issue.get('body') or '')[:400]}...\n"
             issues_text += "-------------------\n"
             
-        prompt = f"{SYSTEM_PROMPT}\nEvaluate the following issues:\n\n{issues_text}"
+        prompt = f"{system_prompt}\nEvaluate the following issues according to the profile:\n\n{issues_text}"
         
         try:
             response = client.models.generate_content(
@@ -99,7 +96,9 @@ def score_issues(issues: List[dict]) -> List[dict]:
             for item in batch_result.scores:
                 scored_issues_map[item.url] = {
                     "score": item.score,
-                    "explanation": item.explanation
+                    "explanation": item.explanation,
+                    "implementation_hint": item.implementation_hint,
+                    "difficulty": item.difficulty
                 }
         except Exception as e:
             logger.error(f"Failed to score batch starting at index {i}: {e}")
@@ -108,16 +107,25 @@ def score_issues(issues: List[dict]) -> List[dict]:
                 if issue.get("url") not in scored_issues_map:
                     scored_issues_map[issue.get("url")] = {
                         "score": 5,
-                        "explanation": "Failed to score using LLM due to error"
+                        "explanation": "Failed to score using LLM due to error",
+                        "implementation_hint": "Review issue description directly.",
+                        "difficulty": dev_profile.skill_level
                     }
                     
     # Map the scores back to the original issues list
     scored_list = []
     for issue in issues:
         url = issue.get("url")
-        score_info = scored_issues_map.get(url, {"score": 5, "explanation": "Unscored"})
+        score_info = scored_issues_map.get(url, {
+            "score": 5, 
+            "explanation": "Unscored",
+            "implementation_hint": "Review issue on GitHub.",
+            "difficulty": dev_profile.skill_level
+        })
         issue["score"] = score_info["score"]
         issue["explanation"] = score_info["explanation"]
+        issue["implementation_hint"] = score_info.get("implementation_hint", "")
+        issue["difficulty"] = score_info.get("difficulty", dev_profile.skill_level)
         scored_list.append(issue)
         
     # Sort by score descending

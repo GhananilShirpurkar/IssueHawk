@@ -3,3 +3,7 @@ google-genai
 APScheduler
 python-dotenv
 requests
+jinja2
+pyyaml
+rich
+pytest

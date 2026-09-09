@@ -165,17 +165,19 @@ def scrape_upforgrabs() -> list[dict]:
         issue["source"] = "upforgrabs"
     return issues
 
-def collect_all_issues() -> list[dict]:
+def collect_all_issues(profile=None) -> list[dict]:
     """
     Run all collection sources:
     1. Scrape goodfirstissue.dev
     2. Scrape up-for-grabs.net
-    3. Run standard GitHub Search API query for languages and topics
-    Deduplicate issues by url/id, normalize schema, and return.
+    3. Run standard GitHub Search API query for profile languages and topics
+    Deduplicate issues by url/id, filter excluded labels, normalize schema, and return.
     """
     from tools.github_api import fetch_github_issues
+    from tools.profile import load_profile
     
-    logger.info("Starting collection of all issues...")
+    dev_profile = profile or load_profile()
+    logger.info(f"Starting collection of all issues for profile '{dev_profile.name}'...")
     all_issues = []
     
     try:
@@ -191,28 +193,40 @@ def collect_all_issues() -> list[dict]:
         logger.error(f"Error scraping up-for-grabs.net: {e}")
         
     try:
-        # Fetch generic issues as well
+        # Fetch generic issues matching profile languages and topics
+        target_languages = dev_profile.languages or ["python", "javascript", "typescript"]
+        target_topics = dev_profile.topics or ["fastapi", "react", "nextjs"]
         api_issues = fetch_github_issues(
-            languages=["python", "javascript", "typescript"],
-            topics=["fastapi", "react", "nextjs", "django", "nodejs"],
+            languages=target_languages,
+            topics=target_topics,
             limit=50
         )
         all_issues.extend(api_issues)
     except Exception as e:
         logger.error(f"Error fetching issues via GitHub API: {e}")
         
-    # Deduplicate issues
+    # Deduplicate issues and filter out excluded labels
+    excluded_labels = {l.lower() for l in dev_profile.exclude_labels}
     seen_ids = set()
     seen_urls = set()
     deduped = []
+    
     for issue in all_issues:
         issue_id = issue.get("id")
         issue_url = issue.get("url")
-        if issue_url and issue_url not in seen_urls:
-            seen_urls.add(issue_url)
-            if issue_id:
-                seen_ids.add(issue_id)
-            deduped.append(issue)
+        if not issue_url or issue_url in seen_urls:
+            continue
             
-    logger.info(f"Collected total of {len(deduped)} unique issues.")
+        # Check excluded labels
+        issue_labels = [l.lower() for l in issue.get("labels", [])]
+        if any(ex in issue_labels for ex in excluded_labels):
+            continue
+            
+        seen_urls.add(issue_url)
+        if issue_id:
+            seen_ids.add(issue_id)
+        deduped.append(issue)
+        
+    logger.info(f"Collected total of {len(deduped)} unique, non-excluded issues.")
     return deduped
+

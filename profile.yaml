@@ -1,0 +1,54 @@
+# IssueHawk Developer Curation Profile
+# Customize your tech stack, preferences, and filters below.
+
+profile:
+  name: "Default Developer"
+  skill_level: "intermediate" # beginner | intermediate | advanced
+  
+  # Core stacks and frameworks of interest
+  skills:
+    - "FastAPI"
+    - "LangGraph"
+    - "React"
+    - "RAG pipelines"
+    - "Python async"
+    - "AI Agents"
+    - "Vector Databases"
+    
+  # Primary programming languages to search and prioritize
+  languages:
+    - "python"
+    - "typescript"
+    - "javascript"
+
+  # GitHub topics to target in queries
+  topics:
+    - "fastapi"
+    - "react"
+    - "nextjs"
+    - "django"
+    - "nodejs"
+    - "agents"
+    - "llm"
+
+  # Preferences & tone for LLM scoring
+  preferences:
+    focus: "Backend-heavy, AI/ML adjacent, Python or JS/TS repositories preferred."
+    avoid: "Pure documentation, typos, DevOps/CI-only configuration, or trivial 1-line changes."
+
+  # Issue filters
+  min_score: 5
+  max_results: 15
+  exclude_labels:
+    - "documentation"
+    - "docs"
+    - "typo"
+    - "typos"
+    - "wontfix"
+    - "invalid"
+    - "duplicate"
+    - "question"
+
+  # Triage settings
+  filter_claimed: true # Check if issue is already claimed in comments/assignees
+  filter_inactive_repos: true # Avoid repos with no activity for > 1 year

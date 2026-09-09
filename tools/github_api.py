@@ -117,6 +117,8 @@ def fetch_github_issues(languages: list, topics: list, limit: int = 30) -> list[
             "repo": repo,
             "labels": [label["name"] for label in item.get("labels", [])],
             "body": (item.get("body") or "").strip(),
+            "assignees": [a.get("login") for a in item.get("assignees", [])],
+            "comments_count": item.get("comments", 0),
             "source": "github_api",
         })
 
@@ -178,6 +180,8 @@ def fetch_issues_from_repositories(repos: list[dict], max_results: int = 30) -> 
                         "repo": repo_name,
                         "labels": [l["name"] for l in raw_item.get("labels", [])],
                         "body": (raw_item.get("body") or "").strip(),
+                        "assignees": [a.get("login") for a in raw_item.get("assignees", [])],
+                        "comments_count": raw_item.get("comments", 0),
                     })
             else:
                 logger.error(f"Failed to fetch issues for {repo_name}: {response.status_code}")
