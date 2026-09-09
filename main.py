@@ -2,6 +2,7 @@ import argparse
 import sys
 import logging
 import os
+import glob
 from datetime import datetime
 from apscheduler.schedulers.blocking import BlockingScheduler
 from rich.console import Console
@@ -16,7 +17,7 @@ from tools.llm import score_issues
 from tools.reporter import generate_markdown_report
 from tools.mailer import send_email
 from tools.dispatchers import dispatch_webhooks
-from tools.viewer import display_latest_report, display_issue_table
+from tools.viewer import display_latest_report, display_issue_table, parse_markdown_report_file, REPORTS_DIR
 
 console = Console()
 
@@ -50,7 +51,7 @@ def setup_logging(verbose: bool = False):
 
 logger = logging.getLogger("issuehawk")
 
-def run_pipeline(profile_path=None):
+def run_pipeline(profile_path=None, force: bool = False):
     """Runs the full upgraded IssueHawk agent pipeline with a clean Rich stepper."""
     dev_profile = load_profile(profile_path)
     
@@ -83,14 +84,18 @@ def run_pipeline(profile_path=None):
         unseen_issues = []
         for issue in raw_issues:
             url = issue.get("url")
-            if url and not is_duplicate(url):
+            if url and (force or not is_duplicate(url)):
                 unseen_issues.append(issue)
 
     cached_count = len(raw_issues) - len(unseen_issues)
     if not unseen_issues:
         console.print(f"  [green]✔[/green] [bold white][2/5] Deduplication:[/bold white] All [cyan]{cached_count}[/cyan] issues already cached in memory. Nothing new to process.")
+        console.print("  [dim]Tip: Use --force to re-evaluate cached candidate issues and dispatch an updated report.[/dim]")
         return
-    console.print(f"  [green]✔[/green] [bold white][2/5] Deduplication complete:[/bold white] [cyan]{len(unseen_issues)}[/cyan] unseen ([dim]{cached_count} cached in memory[/dim]).")
+    if force:
+        console.print(f"  [yellow]⚡[/yellow] [bold white][2/5] Deduplication (Force Mode):[/bold white] Bypassed memory cache for all [cyan]{len(unseen_issues)}[/cyan] candidates.")
+    else:
+        console.print(f"  [green]✔[/green] [bold white][2/5] Deduplication complete:[/bold white] [cyan]{len(unseen_issues)}[/cyan] unseen ([dim]{cached_count} cached in memory[/dim]).")
 
     # Step 3: Triage
     with console.status("[bold cyan][3/5] Triaging candidates (active repos & claimed checks)..."):
@@ -164,20 +169,57 @@ def run_pipeline(profile_path=None):
     display_issue_table(top_issues, title=f"🦅 IssueHawk Run Complete • {len(top_issues)} Issues Curated for {dev_profile.name}")
 
 def send_test_email():
-    """Sends a quick test email to verify Resend setup."""
-    console.print("[cyan]Sending test verification email via Resend...[/cyan]")
-    test_md = f"""# IssueHawk Test Report
-This is a test notification from your upgraded IssueHawk agent.
-
-* **Status:** Success
-* **Resend Configuration:** Verified
-* **Time Sent:** {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-"""
-    success = send_email("IssueHawk — Test Verification", test_md)
+    """Sends a rich newsletter test email containing real/sample curated issues."""
+    console.print("[cyan]Sending full curated newsletter preview email via Resend...[/cyan]")
+    dev_profile = load_profile()
+    
+    report_files = sorted(glob.glob(os.path.join(REPORTS_DIR, "report_*.md")), reverse=True)
+    sample_issues = []
+    if report_files:
+        sample_issues = parse_markdown_report_file(report_files[0])
+        
+    if not sample_issues:
+        sample_issues = [
+            {
+                "title": "Add async streaming support for LangGraph execution graphs in FastAPI worker nodes",
+                "url": "https://github.com/langchain-ai/langgraph/issues/1124",
+                "repo": "langchain-ai/langgraph",
+                "score": 9,
+                "difficulty": "intermediate",
+                "explanation": "Directly matches your FastAPI and LangGraph stack. High impact with clear scope.",
+                "implementation_hint": "Check `langgraph/pregel/runner.py` and inspect how `TaskStream` yields state chunks. Implement an async generator adapter.",
+                "labels": ["good first issue", "enhancement"]
+            },
+            {
+                "title": "Fix memory leak in RAG vector similarity cache during high concurrency",
+                "url": "https://github.com/chroma-core/chroma/issues/2405",
+                "repo": "chroma-core/chroma",
+                "score": 8,
+                "difficulty": "intermediate",
+                "explanation": "Great fit for Python & RAG pipeline optimization with clear reproduction steps.",
+                "implementation_hint": "Inspect the LRU eviction policy in `chromadb/segment/impl/vector/cache.py` to ensure expired keys release their underlying numpy arrays.",
+                "labels": ["bug", "good first issue"]
+            },
+            {
+                "title": "Add React 19 forwardRef migration codemod for UI component library",
+                "url": "https://github.com/shadcn-ui/ui/issues/3902",
+                "repo": "shadcn-ui/ui",
+                "score": 7,
+                "difficulty": "beginner",
+                "explanation": "Matches your React frontend interests and clean architecture conventions.",
+                "implementation_hint": "Look at `packages/cli/src/commands/migrate.ts` and apply the standard AST transform to remove forwardRef wrappers.",
+                "labels": ["frontend", "help wanted"]
+            }
+        ]
+        
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    subject = f"IssueHawk Preview — {date_str} ({len(sample_issues)} Opportunities)"
+    report_path, markdown_content = generate_markdown_report(sample_issues, profile_name=dev_profile.name)
+    success = send_email(subject, markdown_content, issues=sample_issues, profile_name=dev_profile.name)
     if success:
-        console.print("[bold green]✔ Test email sent successfully![/bold green]")
+        console.print(f"[bold green]✔ Full preview newsletter with {len(sample_issues)} curated issues sent successfully to {config.RECIPIENT_EMAIL}![/bold green]")
     else:
-        console.print("[bold red]✖ Failed to send test email. Please check your .env configuration.[/bold red]")
+        console.print("[bold red]✖ Failed to send preview email. Please check your .env configuration.[/bold red]")
 
 def test_webhooks():
     """Sends a test notification to configured webhooks."""
@@ -223,6 +265,7 @@ def main():
     group.add_argument("--test-webhooks", action="store_true", help="Test configured Discord/Slack webhooks")
     
     parser.add_argument("--profile", type=str, default=None, help="Path to custom profile.yaml file")
+    parser.add_argument("--force", action="store_true", help="Bypass memory cache deduplication and force evaluation of all scraped issues")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose debug logging in terminal")
     
     args = parser.parse_args()
@@ -249,7 +292,7 @@ def main():
         sys.exit(1)
         
     if args.run_now:
-        run_pipeline(profile_path=args.profile)
+        run_pipeline(profile_path=args.profile, force=args.force)
     elif args.test_mail:
         send_test_email()
     elif args.schedule:
