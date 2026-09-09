@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="assets/logo.svg" alt="IssueHawk Logo" width="460"/>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="assets/logo.svg">
+    <img alt="IssueHawk Logo" src="assets/logo.svg" width="460">
+  </picture>
 </p>
 
 <p align="center">

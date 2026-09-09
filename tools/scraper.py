@@ -1,4 +1,3 @@
-import asyncio
 import re
 import urllib.parse
 import logging
@@ -8,46 +7,22 @@ import os
 
 logger = logging.getLogger(__name__)
 
-async def _crawl_url(url: str) -> str:
-    """Crawl a URL using crawl4ai if possible, with a requests fallback."""
+def _fetch_html(url: str) -> str:
+    """Fetch URL contents with clean requests and standard headers."""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
     try:
-        from crawl4ai import AsyncWebCrawler
-        logger.info(f"Crawling {url} using crawl4ai...")
-        async with AsyncWebCrawler() as crawler:
-            result = await crawler.arun(url=url)
-            if result and result.markdown:
-                return result.markdown
-    except Exception as e:
-        logger.warning(f"crawl4ai failed or not fully configured: {e}. Falling back to requests.")
-    
-    # Fallback to requests
-    try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        }
-        response = requests.get(url, headers=headers, timeout=15)
+        response = requests.get(url, headers=headers, timeout=12)
         if response.ok:
             return response.text
     except Exception as e:
-        logger.error(f"Fallback requests crawl failed for {url}: {e}")
+        logger.debug(f"Fetch failed for {url}: {e}")
     return ""
 
 def scrape_goodfirstissue() -> list[dict]:
     """Scrape goodfirstissue.dev and return a list of parsed issue dicts."""
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-    if loop.is_running():
-        try:
-            import nest_asyncio
-            nest_asyncio.apply()
-        except ImportError:
-            pass
-            
-    content = loop.run_until_complete(_crawl_url("https://goodfirstissue.dev"))
+    content = _fetch_html("https://goodfirstissue.dev")
     
     repos = []
     github_repo_regex = r"https://github\.com/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_.-]+)"
@@ -89,20 +64,7 @@ def scrape_goodfirstissue() -> list[dict]:
 
 def scrape_upforgrabs() -> list[dict]:
     """Scrape up-for-grabs.net and return a list of parsed issue dicts."""
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-    if loop.is_running():
-        try:
-            import nest_asyncio
-            nest_asyncio.apply()
-        except ImportError:
-            pass
-            
-    content = loop.run_until_complete(_crawl_url("https://up-for-grabs.net/beta/index.html"))
+    content = _fetch_html("https://up-for-grabs.net/beta/index.html")
     
     repos = []
     label_link_regex = r"https://github\.com/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_.-]+)/(labels|issues\?q=)([^)\"\s]+)"

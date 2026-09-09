@@ -41,17 +41,37 @@ def render_newsletter_html(
 def render_simple_html(title: str, text_content: str) -> str:
     """Fallback HTML renderer for simple text or verification emails."""
     paragraphs = [p for p in text_content.split("\n") if p.strip()]
-    body_html = "".join(f"<p style='line-height: 1.5; font-size: 14px;'>{p}</p>" for p in paragraphs)
+    body_html = "".join(f"<p style='line-height: 1.6; font-size: 14px; color: #334155; margin: 0 0 12px 0;'>{p}</p>" for p in paragraphs)
     return f"""<!DOCTYPE html>
 <html>
-<head><meta charset='utf-8'></head>
-<body style='font-family: -apple-system, sans-serif; background-color: #0f172a; padding: 30px 10px;'>
-  <div style='max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 28px; border: 1px solid #e2e8f0;'>
-    <h2 style='color: #4338ca; margin-top: 0;'>🦅 {title}</h2>
-    <div style='color: #334155;'>{body_html}</div>
-    <hr style='border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;'/>
-    <p style='font-size: 12px; color: #64748b; margin: 0;'>Sent by IssueHawk Autonomous Agent</p>
-  </div>
+<head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'></head>
+<body style='margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f8fafc; color: #1e293b;'>
+  <table width='100%' border='0' cellpadding='0' cellspacing='0' bgcolor='#f8fafc' style='background-color: #f8fafc; padding: 40px 12px;'>
+    <tr>
+      <td align='center'>
+        <table width='580' border='0' cellpadding='0' cellspacing='0' bgcolor='#ffffff' style='max-width: 580px; width: 100%; background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 12px -2px rgba(0,0,0,0.05);'>
+          <tr>
+            <td style='padding: 32px 28px 20px 28px; text-align: center; border-bottom: 1px solid #f1f5f9;'>
+              <a href='https://github.com/GhananilShirpurkar/IssueHawk' target='_blank' style='text-decoration: none;'>
+                <img src='https://raw.githubusercontent.com/GhananilShirpurkar/IssueHawk/main/assets/logo.png' width='180' alt='IssueHawk' style='display: block; margin: 0 auto 12px auto; border: 0;' />
+              </a>
+              <h2 style='color: #0f172a; margin: 0; font-size: 18px; font-weight: 700;'>{title}</h2>
+            </td>
+          </tr>
+          <tr>
+            <td style='padding: 24px 28px;'>
+              {body_html}
+            </td>
+          </tr>
+          <tr>
+            <td style='padding: 16px 28px; background-color: #f8fafc; border-top: 1px solid #f1f5f9; text-align: center;'>
+              <p style='font-size: 12px; color: #94a3b8; margin: 0;'>Sent by <strong style='color: #64748b;'>IssueHawk Autonomous Agent</strong></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>"""
 

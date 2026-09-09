@@ -9,9 +9,10 @@
       margin: 0;
       padding: 0;
       min-width: 100%;
-      background-color: #07090e;
+      background-color: #f8fafc;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       -webkit-font-smoothing: antialiased;
+      color: #1e293b;
     }
     table {
       border-collapse: collapse;
@@ -22,96 +23,75 @@
       padding: 0;
     }
     a {
+      color: #2563eb;
       text-decoration: none;
-      color: #38bdf8;
     }
     @media only screen and (max-width: 620px) {
-      .main-container {
+      .main-card {
         width: 100% !important;
         border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
       }
-      .content-padding {
-        padding: 16px !important;
-      }
-      .hero-title {
-        font-size: 17px !important;
+      .content-pad {
+        padding: 20px 16px !important;
       }
       .metric-cell {
         display: block !important;
         width: 100% !important;
-        margin-bottom: 8px !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+        padding: 8px 0 !important;
       }
     }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #07090e; color: #cbd5e1;">
+<body style="margin: 0; padding: 0; background-color: #f8fafc; color: #1e293b;">
 
-  <!-- Outer Background Wrapper -->
-  <table width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#07090e" style="table-layout: fixed;">
+  <!-- Outer Canvas Table -->
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#f8fafc" style="background-color: #f8fafc; table-layout: fixed;">
     <tr>
-      <td align="center" style="padding: 24px 8px 40px 8px;">
+      <td align="center" style="padding: 32px 8px 48px 8px;">
 
         <!-- Main Card Container -->
-        <table class="main-container" width="620" border="0" cellpadding="0" cellspacing="0" bgcolor="#0c101a" style="max-width: 620px; width: 100%; background-color: #0c101a; border-radius: 16px; border: 1px solid #1e293b; overflow: hidden; box-shadow: 0 20px 40px -15px rgba(0,0,0,0.7);">
+        <table class="main-card" width="600" border="0" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);">
           
-          <!-- Header Bar -->
+          <!-- Header Section -->
           <tr>
-            <td style="padding: 32px 28px 24px 28px; background: linear-gradient(180deg, #111726 0%, #0c101a 100%); border-bottom: 1px solid #1e293b; text-align: center;">
+            <td class="content-pad" style="padding: 36px 32px 24px 32px; text-align: center; border-bottom: 1px solid #f1f5f9;">
               
-              <!-- Brand Logo & Badge -->
+              <!-- Brand Logo Image (hosted on GitHub raw CDN for 100% Gmail compatibility) -->
               <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 16px auto;">
                 <tr>
                   <td align="center">
-                    <svg width="46" height="46" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; margin-bottom: 12px;">
-                      <rect width="120" height="120" rx="28" fill="#07090e" />
-                      <rect width="118" height="118" x="1" y="1" rx="27" stroke="rgba(56, 189, 248, 0.3)" stroke-width="1.5" />
-                      <g transform="translate(4, 10)">
-                        <path d="M 12 20 L 68 20 L 45 40 L 22 40 Z" fill="#6366f1" />
-                        <path d="M 8 44 L 68 44 L 50 64 L 18 64 Z" fill="#6366f1" opacity="0.95" />
-                        <path d="M 22 68 L 66 68 L 48 92 L 32 92 Z" fill="#6366f1" opacity="0.9" />
-                        <path d="M 45 20 L 80 20 C 92 20 102 30 102 42 C 102 52 107 62 114 68 C 104 72 92 75 84 68 C 77 62 74 58 70 58 L 45 20 Z" fill="#6366f1" />
-                        <path d="M 90 42 C 100 42 112 50 117 68 C 108 70 94 66 88 58 Z" fill="#38bdf8" />
-                        <g transform="translate(77, 38)">
-                          <circle cx="0" cy="0" r="10" stroke="#06b6d4" stroke-width="2.5" fill="#07090e" />
-                          <circle cx="0" cy="0" r="4" fill="#38bdf8" />
-                          <line x1="-14" y1="0" x2="-8" y2="0" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
-                          <line x1="8" y1="0" x2="14" y2="0" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
-                          <line x1="0" y1="-14" x2="0" y2="-8" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
-                          <line x1="0" y1="8" x2="0" y2="14" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
-                        </g>
-                      </g>
-                    </svg>
-                  </td>
-                </tr>
-                <tr>
-                  <td align="center">
-                    <span style="display: inline-block; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #38bdf8; background-color: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); padding: 4px 12px; border-radius: 100px;">
-                      ISSUEHAWK INTELLIGENCE
-                    </span>
+                    <a href="https://github.com/GhananilShirpurkar/IssueHawk" target="_blank" style="text-decoration: none;">
+                      <img src="https://raw.githubusercontent.com/GhananilShirpurkar/IssueHawk/main/assets/logo.png" width="190" alt="IssueHawk" style="display: block; border: 0; outline: none; max-width: 190px; height: auto; margin: 0 auto;" />
+                    </a>
                   </td>
                 </tr>
               </table>
 
               <!-- Main Title -->
-              <h1 style="margin: 0 0 8px 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; color: #f8fafc;">
+              <h1 style="margin: 0 0 6px 0; font-size: 21px; font-weight: 800; letter-spacing: -0.02em; color: #0f172a;">
                 {{ title }}
               </h1>
-              <p style="margin: 0; font-size: 14px; color: #94a3b8; line-height: 1.4;">
-                {{ subtitle }}
+              <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.4;">
+                Curated autonomously for <strong style="color: #334155;">{{ profile_name }}</strong>
               </p>
 
-              <!-- Executive Metrics Strip -->
+              <!-- Executive Stats Bar -->
               {% if issues %}
-              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 22px; background-color: #07090e; border-radius: 10px; border: 1px solid #1e293b; padding: 12px 14px;">
+              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 20px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
                 <tr>
-                  <td class="metric-cell" align="center" style="font-size: 12px; color: #94a3b8;">
-                    🎯 <strong style="color: #f8fafc;">{{ issues|length }}</strong> Curated
+                  <td class="metric-cell" align="center" style="padding: 10px 8px; font-size: 12px; color: #64748b;">
+                    🎯 <strong style="color: #0f172a;">{{ issues|length }}</strong> Opportunities
                   </td>
-                  <td class="metric-cell" align="center" style="font-size: 12px; color: #94a3b8; border-left: 1px solid #1e293b; border-right: 1px solid #1e293b;">
-                    ⚡ Level: <strong style="color: #38bdf8;">{{ (profile.skill_level if profile else 'Intermediate')|capitalize }}</strong>
+                  <td class="metric-cell" align="center" style="padding: 10px 8px; font-size: 12px; color: #64748b; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
+                    ⚡ Level: <strong style="color: #2563eb;">{{ (profile.skill_level if profile else 'Intermediate')|capitalize }}</strong>
                   </td>
-                  <td class="metric-cell" align="center" style="font-size: 12px; color: #94a3b8;">
-                    🦅 Profile: <strong style="color: #f8fafc;">{{ profile_name }}</strong>
+                  <td class="metric-cell" align="center" style="padding: 10px 8px; font-size: 12px; color: #64748b;">
+                    🗓️ Cadence: <strong style="color: #0f172a;">{{ cadence|upper }}</strong>
                   </td>
                 </tr>
               </table>
@@ -122,78 +102,73 @@
 
           <!-- Content Section -->
           <tr>
-            <td class="content-padding" style="padding: 24px 28px;">
+            <td class="content-pad" style="padding: 28px 32px;">
 
               {% if not issues %}
-              <!-- Empty State -->
-              <div style="text-align: center; padding: 48px 16px;">
-                <p style="font-size: 16px; font-weight: 600; color: #f8fafc; margin-bottom: 6px;">No high-scoring matches today</p>
-                <p style="font-size: 13px; color: #64748b; margin: 0;">IssueHawk scanned all sources, but no open issues met the minimum relevance threshold. We'll scan again on the next run.</p>
+              <div style="text-align: center; padding: 40px 16px;">
+                <p style="font-size: 15px; font-weight: 600; color: #0f172a; margin: 0 0 6px 0;">No new opportunities found today</p>
+                <p style="font-size: 13px; color: #64748b; margin: 0;">All currently open issues were either scored below your relevance threshold or previously triaged.</p>
               </div>
               {% else %}
 
                 <!-- #1 HERO / FEATURED ISSUE -->
                 {% set hero = issues[0] %}
-                <table width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#0f172a" style="background: linear-gradient(180deg, #111b33 0%, #0e1424 100%); border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.4); margin-bottom: 24px; box-shadow: 0 10px 25px -5px rgba(56, 189, 248, 0.08);">
+                <table width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#f8fafc" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 28px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);">
                   <tr>
-                    <td style="padding: 20px;">
+                    <td style="padding: 22px;">
 
-                      <!-- Top Hero Badge Row -->
+                      <!-- Eyebrow Row -->
                       <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
                         <tr>
                           <td>
-                            <span style="font-family: ui-monospace, monospace; font-size: 11px; font-weight: 800; color: #38bdf8; background-color: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); padding: 3px 8px; border-radius: 6px; letter-spacing: 0.05em;">
-                              ⚡ #1 TOP OPPORTUNITY
+                            <span style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; font-weight: 700; color: #1d4ed8; background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.04em;">
+                              ★ TOP OPPORTUNITY
                             </span>
                           </td>
                           <td align="right">
-                            <span style="font-family: ui-monospace, monospace; font-size: 12px; font-weight: 800; color: #4ade80; background-color: rgba(74, 222, 128, 0.12); border: 1px solid rgba(74, 222, 128, 0.3); padding: 3px 10px; border-radius: 6px;">
+                            <span style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; font-weight: 800; color: #15803d; background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 3px 9px; border-radius: 4px;">
                               {{ hero.score }}/10 Match
                             </span>
                           </td>
                         </tr>
                       </table>
 
-                      <!-- Title -->
-                      <h2 class="hero-title" style="margin: 0 0 10px 0; font-size: 18px; font-weight: 700; line-height: 1.4;">
-                        <a href="{{ hero.url }}" target="_blank" style="color: #ffffff; text-decoration: none;">
+                      <!-- Issue Title -->
+                      <h2 style="margin: 0 0 10px 0; font-size: 17px; font-weight: 700; line-height: 1.4;">
+                        <a href="{{ hero.url }}" target="_blank" style="color: #0f172a; text-decoration: none;">
                           {{ hero.title }}
                         </a>
                       </h2>
 
-                      <!-- Repo & Difficulty Meta -->
-                      <div style="font-size: 12px; color: #94a3b8; margin-bottom: 14px;">
-                        <span style="font-family: ui-monospace, monospace; color: #e2e8f0; background-color: rgba(255,255,255,0.06); padding: 2px 7px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
+                      <!-- Repo Tag & Difficulty -->
+                      <div style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
+                        <span style="font-family: ui-monospace, SFMono-Regular, monospace; color: #334155; background-color: #ffffff; padding: 2px 7px; border-radius: 4px; border: 1px solid #e2e8f0;">
                           📁 {{ hero.repo }}
                         </span>
                         {% if hero.difficulty %}
-                        <span style="margin-left: 6px; font-family: ui-monospace, monospace; font-size: 11px; color: #38bdf8; background-color: rgba(56, 189, 248, 0.1); padding: 2px 6px; border-radius: 4px;">
-                          {{ hero.difficulty|capitalize }}
+                        <span style="margin-left: 6px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; color: #64748b;">
+                          • {{ hero.difficulty|capitalize }}
                         </span>
                         {% endif %}
                       </div>
 
                       <!-- Why it fits -->
-                      <p style="margin: 0 0 14px 0; font-size: 13px; color: #cbd5e1; line-height: 1.5;">
-                        <strong style="color: #38bdf8;">Why:</strong> {{ hero.explanation }}
+                      <p style="margin: 0 0 14px 0; font-size: 13px; color: #334155; line-height: 1.5;">
+                        <strong style="color: #0f172a;">Why:</strong> {{ hero.explanation }}
                       </p>
 
-                      <!-- Terminal Style Start Hint -->
+                      <!-- Tactical Implementation Hint -->
                       {% if hero.implementation_hint %}
-                      <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #07090e; border-radius: 8px; border: 1px solid #1e293b; margin-bottom: 16px;">
-                        <tr>
-                          <td style="padding: 10px 12px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; line-height: 1.5; color: #4ade80;">
-                            <span style="color: #64748b;">$</span> <span style="color: #94a3b8;">tactic:</span> {{ hero.implementation_hint }}
-                          </td>
-                        </tr>
-                      </table>
+                      <div style="border-left: 3px solid #2563eb; background-color: #ffffff; padding: 10px 12px; border-radius: 0 6px 6px 0; border: 1px solid #e2e8f0; border-left-width: 3px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.5; color: #1e293b; margin-bottom: 16px;">
+                        <strong style="color: #2563eb;">tactic:</strong> {{ hero.implementation_hint }}
+                      </div>
                       {% endif %}
 
                       <!-- Action Button -->
                       <table border="0" cellpadding="0" cellspacing="0">
                         <tr>
-                          <td align="center" bgcolor="#4f46e5" style="border-radius: 8px; background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);">
-                            <a href="{{ hero.url }}" target="_blank" style="display: inline-block; padding: 9px 18px; font-size: 13px; font-weight: 700; color: #ffffff; text-decoration: none; border-radius: 8px;">
+                          <td align="center" bgcolor="#0f172a" style="border-radius: 6px;">
+                            <a href="{{ hero.url }}" target="_blank" style="display: inline-block; padding: 9px 18px; font-size: 13px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 6px;">
                               View Issue on GitHub &rarr;
                             </a>
                           </td>
@@ -206,87 +181,69 @@
 
                 <!-- SECTION DIVIDER FOR REMAINING ISSUES -->
                 {% if issues|length > 1 %}
-                <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
+                <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin: 28px 0 14px 0; border-top: 1px solid #e2e8f0;">
                   <tr>
-                    <td style="font-family: ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #64748b; text-transform: uppercase;">
-                      MORE CURATED OPPORTUNITIES ({{ issues|length - 1 }})
+                    <td style="padding-top: 18px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #94a3b8; text-transform: uppercase;">
+                      ADDITIONAL MATCHES ({{ issues|length - 1 }})
                     </td>
                   </tr>
                 </table>
 
                 <!-- REMAINING ISSUES (#2..N) -->
                 {% for issue in issues[1:] %}
-                <table width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#0e1320" style="background-color: #0e1320; border-radius: 10px; border: 1px solid #1e293b; margin-bottom: 16px;">
+                <table width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="background-color: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
                   <tr>
                     <td style="padding: 16px 18px;">
 
-                      <!-- Header: Rank, Title, Score Badge -->
+                      <!-- Header: Title and Score -->
                       <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 8px;">
                         <tr>
                           <td style="vertical-align: top;">
                             <h3 style="margin: 0; font-size: 15px; font-weight: 700; line-height: 1.4;">
-                              <span style="font-family: ui-monospace, monospace; color: #6366f1; font-size: 13px; margin-right: 4px;">#{{ loop.index + 1 }}</span>
-                              <a href="{{ issue.url }}" target="_blank" style="color: #f1f5f9; text-decoration: none;">
+                              <span style="font-family: ui-monospace, monospace; color: #2563eb; font-size: 12px; margin-right: 4px;">#{{ loop.index + 1 }}</span>
+                              <a href="{{ issue.url }}" target="_blank" style="color: #0f172a; text-decoration: none;">
                                 {{ issue.title }}
                               </a>
                             </h3>
                           </td>
                           <td align="right" style="vertical-align: top; padding-left: 12px; white-space: nowrap;">
-                            {% if issue.score >= 8 %}
-                              <span style="font-family: ui-monospace, monospace; font-size: 11px; font-weight: 700; color: #4ade80; background-color: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.25); padding: 2px 7px; border-radius: 4px;">
-                                {{ issue.score }}/10
-                              </span>
-                            {% elif issue.score >= 6 %}
-                              <span style="font-family: ui-monospace, monospace; font-size: 11px; font-weight: 700; color: #38bdf8; background-color: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); padding: 2px 7px; border-radius: 4px;">
-                                {{ issue.score }}/10
-                              </span>
-                            {% else %}
-                              <span style="font-family: ui-monospace, monospace; font-size: 11px; font-weight: 700; color: #fbbf24; background-color: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.25); padding: 2px 7px; border-radius: 4px;">
-                                {{ issue.score }}/10
-                              </span>
-                            {% endif %}
+                            <span style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; font-weight: 700; color: #475569; background-color: #f1f5f9; border: 1px solid #e2e8f0; padding: 2px 7px; border-radius: 4px;">
+                              {{ issue.score }}/10
+                            </span>
                           </td>
                         </tr>
                       </table>
 
-                      <!-- Meta row: Repo & Labels -->
-                      <div style="font-size: 12px; color: #94a3b8; margin-bottom: 10px;">
-                        <span style="font-family: ui-monospace, monospace; color: #cbd5e1; background-color: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.08);">
+                      <!-- Meta: Repo -->
+                      <div style="font-size: 12px; color: #64748b; margin-bottom: 10px;">
+                        <span style="font-family: ui-monospace, SFMono-Regular, monospace; color: #475569; background-color: #f8fafc; padding: 2px 6px; border-radius: 4px; border: 1px solid #e2e8f0;">
                           📁 {{ issue.repo }}
                         </span>
                         {% if issue.difficulty %}
-                        <span style="margin-left: 4px; font-family: ui-monospace, monospace; font-size: 11px; color: #94a3b8;">
-                          &bull; {{ issue.difficulty }}
+                        <span style="margin-left: 4px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; color: #64748b;">
+                          • {{ issue.difficulty }}
                         </span>
                         {% endif %}
                       </div>
 
-                      <!-- Why fits -->
-                      <p style="margin: 0 0 10px 0; font-size: 13px; color: #94a3b8; line-height: 1.4;">
+                      <!-- Why it fits -->
+                      <p style="margin: 0 0 10px 0; font-size: 13px; color: #475569; line-height: 1.4;">
                         {{ issue.explanation }}
                       </p>
 
-                      <!-- Actionable Start Hint -->
+                      <!-- Tactical Hint -->
                       {% if issue.implementation_hint %}
-                      <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #07090e; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 12px;">
-                        <tr>
-                          <td style="padding: 8px 10px; font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.4; color: #38bdf8;">
-                            <span style="color: #64748b;">$</span> start: {{ issue.implementation_hint }}
-                          </td>
-                        </tr>
-                      </table>
+                      <div style="border-left: 2px solid #94a3b8; background-color: #f8fafc; padding: 8px 10px; border-radius: 0 4px 4px 0; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; line-height: 1.4; color: #334155; margin-bottom: 12px;">
+                        <strong style="color: #475569;">tactic:</strong> {{ issue.implementation_hint }}
+                      </div>
                       {% endif %}
 
-                      <!-- Direct CTA Ghost Button -->
-                      <table border="0" cellpadding="0" cellspacing="0">
-                        <tr>
-                          <td style="border-radius: 6px; border: 1px solid #334155; background-color: rgba(255,255,255,0.02);">
-                            <a href="{{ issue.url }}" target="_blank" style="display: inline-block; padding: 5px 12px; font-size: 11px; font-weight: 600; color: #cbd5e1; text-decoration: none;">
-                              View on GitHub &nearr;
-                            </a>
-                          </td>
-                        </tr>
-                      </table>
+                      <!-- Action Link -->
+                      <div>
+                        <a href="{{ issue.url }}" target="_blank" style="font-size: 12px; font-weight: 600; color: #2563eb; text-decoration: none;">
+                          View Issue &rarr;
+                        </a>
+                      </div>
 
                     </td>
                   </tr>
@@ -301,12 +258,12 @@
 
           <!-- Footer -->
           <tr>
-            <td style="padding: 24px; background-color: #07090e; border-top: 1px solid #1e293b; text-align: center;">
-              <p style="margin: 0 0 6px 0; font-size: 12px; color: #64748b;">
-                Curated autonomously by <strong style="color: #94a3b8;">IssueHawk</strong> • Cadence: <strong style="color: #38bdf8;">{{ cadence|upper }}</strong>
+            <td style="padding: 24px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
+              <p style="margin: 0 0 4px 0; font-size: 12px; color: #64748b;">
+                Sent by <strong style="color: #0f172a;">IssueHawk</strong> • Autonomous GitHub Issue Intelligence
               </p>
-              <p style="margin: 0; font-size: 11px; color: #475569;">
-                Configure target frameworks, languages, and thresholds in <code style="color: #64748b;">profile.yaml</code>
+              <p style="margin: 0; font-size: 11px; color: #94a3b8;">
+                Target stacks: {{ (profile.skills if profile else [])|join(', ') }}
               </p>
             </td>
           </tr>

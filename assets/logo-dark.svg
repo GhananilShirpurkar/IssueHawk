@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 120" width="500" height="120" fill="none">
+  <defs>
+    <linearGradient id="hawkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+    <linearGradient id="crosshairGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+  </defs>
+
+  <!-- Hawk Head Profile -->
+  <g transform="translate(10, 10)">
+    <!-- Top Feather Blade -->
+    <path d="M 15 20 L 75 20 L 50 42 L 25 42 Z" fill="url(#hawkGrad)" />
+    
+    <!-- Middle Feather Blade -->
+    <path d="M 10 46 L 75 46 L 55 68 L 22 68 Z" fill="url(#hawkGrad)" opacity="0.95" />
+    
+    <!-- Lower Neck / Wing Fold -->
+    <path d="M 28 72 L 72 72 L 52 98 L 38 98 Z" fill="url(#hawkGrad)" opacity="0.9" />
+
+    <!-- Head Crown & Beak -->
+    <path d="M 50 20 L 88 20 C 100 20 110 30 110 42 C 110 52 115 62 122 68 C 112 72 100 75 92 68 C 85 62 82 58 78 58 L 50 20 Z" fill="url(#hawkGrad)" />
+    
+    <!-- Sharp Hooked Beak -->
+    <path d="M 98 42 C 108 42 120 50 125 68 C 116 70 102 66 96 58 Z" fill="#38bdf8" />
+
+    <!-- Crosshair Target Eye -->
+    <g transform="translate(85, 38)">
+      <circle cx="0" cy="0" r="10" stroke="url(#crosshairGrad)" stroke-width="2.5" fill="#0b0f19" />
+      <circle cx="0" cy="0" r="4" fill="#38bdf8" />
+      <line x1="-14" y1="0" x2="-8" y2="0" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+      <line x1="8" y1="0" x2="14" y2="0" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+      <line x1="0" y1="-14" x2="0" y2="-8" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+      <line x1="0" y1="8" x2="0" y2="14" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+    </g>
+  </g>
+
+  <!-- Wordmark ISSUEHAWK -->
+  <text x="160" y="70" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="44" letter-spacing="4" fill="#ffffff">
+    ISSUE<tspan fill="#38bdf8">HAWK</tspan>
+  </text>
+  <text x="162" y="94" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-weight="600" font-size="12" letter-spacing="3" fill="#94a3b8">
+    AUTONOMOUS ISSUE TRIAGE
+  </text>
+</svg>

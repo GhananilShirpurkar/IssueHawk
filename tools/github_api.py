@@ -50,7 +50,7 @@ def fetch_github_issues(languages: list, topics: list, limit: int = 30) -> list[
         A list of dicts, each with keys:
             id, title, url, repo, labels, body
     """
-    token = os.getenv("GITHUB_TOKEN")
+    token = os.getenv("ACCESS_TOKEN_GITHUB") or os.getenv("GITHUB_TOKEN")
     headers = {
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
@@ -58,7 +58,7 @@ def fetch_github_issues(languages: list, topics: list, limit: int = 30) -> list[
     if token:
         headers["Authorization"] = f"Bearer {token}"
     else:
-        logger.warning("GITHUB_TOKEN not set — requests will use the unauthenticated rate limit (10 req/min).")
+        logger.warning("Neither ACCESS_TOKEN_GITHUB nor GITHUB_TOKEN is set — requests will use unauthenticated rate limit.")
 
     query = _build_query(languages, topics)
     params = {
@@ -128,10 +128,9 @@ def fetch_github_issues(languages: list, topics: list, limit: int = 30) -> list[
 def fetch_issues_from_repositories(repos: list[dict], max_results: int = 30) -> list[dict]:
     """
     Fetch open issues from a list of specific repositories with their custom labels.
-    Each repo in the list should be a dict: {"repo": "owner/repo", "label": "label-name"}
+    Uses GitHub's direct /repos/{owner}/{repo}/issues API (5,000 req/hr rate limit).
     """
-    import time
-    token = os.getenv("GITHUB_TOKEN")
+    token = os.getenv("ACCESS_TOKEN_GITHUB") or os.getenv("GITHUB_TOKEN")
     headers = {
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
@@ -140,54 +139,53 @@ def fetch_issues_from_repositories(repos: list[dict], max_results: int = 30) -> 
         headers["Authorization"] = f"Bearer {token}"
     
     issues = []
-    # To avoid hitting the query length limit and rate limits, we query in small batches or individually
-    # Since we want to be robust and fast, let's fetch for each repo but limit to top 3 issues per repo
-    for item in repos[:15]: # Limit to top 15 repositories to avoid rate limiting
+    for item in repos[:15]:
         repo_name = item.get("repo")
         label = item.get("label", "good first issue")
-        if not repo_name:
+        if not repo_name or "/" not in repo_name:
             continue
             
-        query = f'repo:{repo_name} label:"{label}" state:open'
+        repo_api_url = f"https://api.github.com/repos/{repo_name}/issues"
         params = {
-            "q": query,
+            "labels": label,
+            "state": "open",
             "per_page": 5,
-            "page": 1,
             "sort": "created",
-            "order": "desc",
+            "direction": "desc"
         }
         
-        logger.info(f"Fetching issues for repo {repo_name} | query: {query}")
+        logger.debug(f"Fetching issues for repo {repo_name} with label '{label}'")
         try:
-            response = requests.get(GITHUB_API_URL, headers=headers, params=params, timeout=15)
+            response = requests.get(repo_api_url, headers=headers, params=params, timeout=10)
             if response.status_code == 403:
                 remaining = int(response.headers.get("X-RateLimit-Remaining", 1))
                 if remaining == 0:
                     reset_at = int(response.headers.get("X-RateLimit-Reset", 0))
                     wait = max(reset_at - int(time.time()), 0) + 1
-                    logger.warning(f"Rate limit hit. Waiting {wait} seconds...")
+                    logger.warning(f"GitHub rate limit hit. Waiting {wait} seconds...")
                     time.sleep(wait)
-                    response = requests.get(GITHUB_API_URL, headers=headers, params=params, timeout=15)
+                    response = requests.get(repo_api_url, headers=headers, params=params, timeout=10)
             
             if response.ok:
-                data = response.json()
-                raw_items = data.get("items", [])
-                for raw_item in raw_items:
-                    issues.append({
-                        "id": raw_item.get("id"),
-                        "title": raw_item.get("title", ""),
-                        "url": raw_item.get("html_url", ""),
-                        "repo": repo_name,
-                        "labels": [l["name"] for l in raw_item.get("labels", [])],
-                        "body": (raw_item.get("body") or "").strip(),
-                        "assignees": [a.get("login") for a in raw_item.get("assignees", [])],
-                        "comments_count": raw_item.get("comments", 0),
-                    })
+                raw_items = response.json()
+                if isinstance(raw_items, list):
+                    for raw_item in raw_items:
+                        # Filter out pull requests which are also returned by /issues
+                        if "pull_request" in raw_item:
+                            continue
+                        issues.append({
+                            "id": raw_item.get("id"),
+                            "title": raw_item.get("title", ""),
+                            "url": raw_item.get("html_url", ""),
+                            "repo": repo_name,
+                            "labels": [l["name"] for l in raw_item.get("labels", []) if isinstance(l, dict) and "name" in l],
+                            "body": (raw_item.get("body") or "").strip(),
+                            "assignees": [a.get("login") for a in raw_item.get("assignees", []) if isinstance(a, dict) and "login" in a],
+                            "comments_count": raw_item.get("comments", 0),
+                        })
             else:
-                logger.error(f"Failed to fetch issues for {repo_name}: {response.status_code}")
+                logger.debug(f"Repo {repo_name} returned status {response.status_code}")
         except Exception as e:
-            logger.error(f"Error fetching issues for {repo_name}: {e}")
+            logger.debug(f"Error fetching issues for {repo_name}: {e}")
             
-        time.sleep(0.5)
-        
     return issues[:max_results]

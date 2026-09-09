@@ -9,18 +9,16 @@ logger = logging.getLogger(__name__)
 DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 DB_PATH = os.path.join(DB_DIR, "memory.db")
 
-_initialized = False
+_initialized_paths = set()
 
 def init_db(target_db_path: Optional[str] = None):
     """Initialize the database and run schema migrations if necessary."""
-    global _initialized
-    db_file = target_db_path or DB_PATH
+    db_file = os.path.abspath(target_db_path or DB_PATH)
     
-    # If custom path is passed, always initialize that connection
-    if not target_db_path and _initialized:
+    if db_file in _initialized_paths:
         return
         
-    os.makedirs(os.path.dirname(os.path.abspath(db_file)), exist_ok=True)
+    os.makedirs(os.path.dirname(db_file), exist_ok=True)
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
     
@@ -51,16 +49,15 @@ def init_db(target_db_path: Optional[str] = None):
         if col_name not in existing_cols:
             try:
                 cursor.execute(f"ALTER TABLE issues ADD COLUMN {col_name} {col_def}")
-                logger.info(f"Migrated memory.db: Added column '{col_name}'")
+                logger.debug(f"Migrated memory.db: Added column '{col_name}'")
             except sqlite3.OperationalError as e:
-                logger.warning(f"Column '{col_name}' migration notice: {e}")
+                logger.debug(f"Column '{col_name}' migration notice: {e}")
                 
     conn.commit()
     conn.close()
     
-    if not target_db_path:
-        _initialized = True
-    logger.info("SQLite Database initialized at %s", db_file)
+    _initialized_paths.add(db_file)
+    logger.debug("SQLite Database initialized at %s", db_file)
 
 def is_duplicate(issue_url: str, target_db_path: Optional[str] = None) -> bool:
     """

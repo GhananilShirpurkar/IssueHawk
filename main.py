@@ -18,130 +18,154 @@ from tools.mailer import send_email
 from tools.dispatchers import dispatch_webhooks
 from tools.viewer import display_latest_report, display_issue_table
 
-# Configure Logger
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-logger = logging.getLogger("issuehawk")
 console = Console()
 
+def setup_logging(verbose: bool = False):
+    """Configures clean, professional logging without terminal spam."""
+    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = os.path.join(log_dir, "issuehawk.log")
+
+    # File logger captures all detailed debug information
+    file_handler = logging.FileHandler(log_file, encoding="utf-8")
+    file_handler.setLevel(logging.DEBUG)
+    file_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+    file_handler.setFormatter(file_formatter)
+
+    # Console logger only shows warnings/errors unless verbose mode is enabled
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.DEBUG if verbose else logging.WARNING)
+    console_formatter = logging.Formatter("[%(levelname)s] %(name)s: %(message)s")
+    console_handler.setFormatter(console_formatter)
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+    root_logger.handlers = [file_handler, console_handler]
+
+    # Suppress verbose noisy third-party loggers
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("google_genai").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("apscheduler").setLevel(logging.WARNING)
+
+logger = logging.getLogger("issuehawk")
+
 def run_pipeline(profile_path=None):
-    """Runs the full upgraded IssueHawk agent pipeline."""
+    """Runs the full upgraded IssueHawk agent pipeline with a clean Rich stepper."""
     dev_profile = load_profile(profile_path)
-    logger.info(f"--- Starting IssueHawk Pipeline Run for '{dev_profile.name}' ({dev_profile.skill_level}) ---")
     
-    # 1. Initialize memory DB
-    init_db()
-    
-    # 2. Collect issues from all sources using profile filters
-    raw_issues = collect_all_issues(profile=dev_profile)
+    # 1. Header Card
+    skills_preview = ", ".join(dev_profile.skills[:4]) + ("..." if len(dev_profile.skills) > 4 else "")
+    console.print()
+    console.print(Panel(
+        f"[bold white]Target Stack:[/bold white] [cyan]{skills_preview}[/cyan]\n"
+        f"[bold white]Seniority:[/bold white] [green]{dev_profile.skill_level.capitalize()}[/green]  •  "
+        f"[bold white]Threshold:[/bold white] [yellow]>={dev_profile.min_score}/10[/yellow]  •  "
+        f"[bold white]Limit:[/bold white] [white]{dev_profile.max_results} issues[/white]",
+        title=f"🦅 [bold]IssueHawk[/bold] — Curation Run: [bold cyan]{dev_profile.name}[/bold cyan]",
+        border_style="blue",
+        padding=(0, 2)
+    ))
+    console.print()
+
+    # Step 1: Memory init & Scrape
+    with console.status("[bold cyan][1/5] Collecting open issues across GitHub, goodfirstissue.dev, up-for-grabs..."):
+        init_db()
+        raw_issues = collect_all_issues(profile=dev_profile)
+
     if not raw_issues:
-        logger.info("No raw issues found during scrape. Pipeline finished.")
+        console.print("  [yellow]⚠[/yellow] [1/5] No open issues found across sources today. Pipeline complete.")
         return
-        
-    # 3. Deduplicate against memory cache (checks permanent emailed + 14-day negative cache)
-    unseen_issues = []
-    for issue in raw_issues:
-        url = issue.get("url")
-        if url and not is_duplicate(url):
-            unseen_issues.append(issue)
-            
-    logger.info(f"Deduplication complete. {len(unseen_issues)} unseen issues of {len(raw_issues)} raw issues.")
+    console.print(f"  [green]✔[/green] [bold white][1/5] Scraped candidate issues:[/bold white] [cyan]{len(raw_issues)}[/cyan] found.")
+
+    # Step 2: Deduplication
+    with console.status("[bold cyan][2/5] Deduplicating against memory cache..."):
+        unseen_issues = []
+        for issue in raw_issues:
+            url = issue.get("url")
+            if url and not is_duplicate(url):
+                unseen_issues.append(issue)
+
+    cached_count = len(raw_issues) - len(unseen_issues)
     if not unseen_issues:
-        logger.info("No new issues to process. All issues are already cached in memory. Pipeline finished.")
+        console.print(f"  [green]✔[/green] [bold white][2/5] Deduplication:[/bold white] All [cyan]{cached_count}[/cyan] issues already cached in memory. Nothing new to process.")
         return
-        
-    # 4. Triage: Filter out claimed issues and inactive repositories
-    accepted_issues, rejected_issues = triage_issues(
-        unseen_issues,
-        filter_claimed=dev_profile.filter_claimed,
-        filter_inactive=dev_profile.filter_inactive_repos
-    )
-    
-    # Memorize rejected issues in negative-cache with 14-day TTL
-    for rej in rejected_issues:
-        record_evaluation(
-            rej,
-            status=rej.get("rejection_status", "claimed"),
-            score=0,
-            explanation=rej.get("rejection_reason", "Filtered during triage"),
-            ttl_days=14
+    console.print(f"  [green]✔[/green] [bold white][2/5] Deduplication complete:[/bold white] [cyan]{len(unseen_issues)}[/cyan] unseen ([dim]{cached_count} cached in memory[/dim]).")
+
+    # Step 3: Triage
+    with console.status("[bold cyan][3/5] Triaging candidates (active repos & claimed checks)..."):
+        accepted_issues, rejected_issues = triage_issues(
+            unseen_issues,
+            filter_claimed=dev_profile.filter_claimed,
+            filter_inactive=dev_profile.filter_inactive_repos
         )
-        
-    if not accepted_issues:
-        logger.info("All unseen issues were filtered out during triage. Pipeline finished.")
-        return
-        
-    # 5. Score remaining issues with Gemini using dynamic profile
-    logger.info(f"Scoring {len(accepted_issues)} candidate issues with Gemini...")
-    scored_issues = score_issues(accepted_issues, profile=dev_profile)
-    
-    # 6. Filter by relevance threshold and negative-cache low-scoring issues
-    min_score = dev_profile.min_score
-    relevant_issues = []
-    for issue in scored_issues:
-        score = issue.get("score", 0)
-        if score >= min_score:
-            relevant_issues.append(issue)
-        else:
-            # Negative cache low-scoring issue for 14 days to prevent re-scoring tomorrow
+        for rej in rejected_issues:
             record_evaluation(
-                issue,
-                status="skipped_low_score",
-                score=score,
-                explanation=issue.get("explanation", "Below relevance threshold"),
-                hint=issue.get("implementation_hint", ""),
+                rej,
+                status=rej.get("rejection_status", "claimed"),
+                score=0,
+                explanation=rej.get("rejection_reason", "Filtered during triage"),
                 ttl_days=14
             )
-            
-    logger.info(f"Filtered {len(scored_issues)} issues to {len(relevant_issues)} with score >= {min_score}.")
-    if not relevant_issues:
-        logger.info(f"No issues passed the relevance threshold (score >= {min_score}). Pipeline finished.")
+
+    if not accepted_issues:
+        console.print(f"  [yellow]⚠[/yellow] [3/5] All {len(unseen_issues)} unseen issues were filtered (claimed or inactive). Pipeline complete.")
         return
-        
-    # Keep top ranked issues up to max_results
+    console.print(f"  [green]✔[/green] [bold white][3/5] Triage complete:[/bold white] [cyan]{len(accepted_issues)}[/cyan] active candidates ([dim]{len(rejected_issues)} claimed/stale filtered[/dim]).")
+
+    # Step 4: AI Scoring
+    with console.status(f"[bold cyan][4/5] Scoring {len(accepted_issues)} issues with Gemini 2.5 Flash..."):
+        scored_issues = score_issues(accepted_issues, profile=dev_profile)
+        min_score = dev_profile.min_score
+        relevant_issues = []
+        for issue in scored_issues:
+            score = issue.get("score", 0)
+            if score >= min_score:
+                relevant_issues.append(issue)
+            else:
+                record_evaluation(
+                    issue,
+                    status="skipped_low_score",
+                    score=score,
+                    explanation=issue.get("explanation", "Below relevance threshold"),
+                    hint=issue.get("implementation_hint", ""),
+                    ttl_days=14
+                )
+
+    if not relevant_issues:
+        console.print(f"  [yellow]⚠[/yellow] [4/5] No issues scored >= {min_score}/10 today. Negative-cache updated. Pipeline complete.")
+        return
+
     top_issues = relevant_issues[:dev_profile.max_results]
-    
-    # 7. Generate report (Markdown archive)
-    logger.info("Generating report...")
-    report_path, markdown_content = generate_markdown_report(top_issues, profile_name=dev_profile.name)
-    
-    # 8. Deliver report via Email (Resend)
-    date_str = datetime.now().strftime("%Y-%m-%d")
-    subject = f"IssueHawk Report — {date_str} ({len(top_issues)} Opportunities)"
-    email_success = send_email(subject, markdown_content, issues=top_issues, profile_name=dev_profile.name)
-    
-    # 9. Deliver report via Webhooks (Discord / Slack if configured)
-    webhook_results = dispatch_webhooks(top_issues, profile_name=dev_profile.name)
-    if webhook_results:
-        logger.info(f"Webhook dispatch results: {webhook_results}")
-        
-    # 10. Update Memory DB for emailed issues (permanent mark)
-    if email_success:
-        logger.info("Updating memory with mailed issues...")
-        for issue in top_issues:
-            record_evaluation(
-                issue,
-                status="emailed",
-                score=issue.get("score", 0),
-                explanation=issue.get("explanation", ""),
-                hint=issue.get("implementation_hint", "")
-            )
-        logger.info("Pipeline executed successfully and memory updated.")
-    else:
-        logger.warning("Email report was not delivered. Check Resend configuration.")
-        
-    # 11. Print Rich Terminal Summary
+    console.print(f"  [green]✔[/green] [bold white][4/5] AI Scoring complete:[/bold white] [cyan]{len(top_issues)}[/cyan] high-relevance opportunities curated.")
+
+    # Step 5: Reports & Dispatch
+    with console.status("[bold cyan][5/5] Generating reports and dispatching notifications..."):
+        report_path, markdown_content = generate_markdown_report(top_issues, profile_name=dev_profile.name)
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        subject = f"IssueHawk Report — {date_str} ({len(top_issues)} Opportunities)"
+        email_success = send_email(subject, markdown_content, issues=top_issues, profile_name=dev_profile.name)
+        dispatch_webhooks(top_issues, profile_name=dev_profile.name)
+
+        if email_success:
+            for issue in top_issues:
+                record_evaluation(
+                    issue,
+                    status="emailed",
+                    score=issue.get("score", 0),
+                    explanation=issue.get("explanation", ""),
+                    hint=issue.get("implementation_hint", "")
+                )
+
+    console.print(f"  [green]✔[/green] [bold white][5/5] Delivery complete:[/bold white] Report saved & dispatched via email/webhooks.")
     console.print()
+
+    # Final Summary Table
     display_issue_table(top_issues, title=f"🦅 IssueHawk Run Complete • {len(top_issues)} Issues Curated for {dev_profile.name}")
 
 def send_test_email():
     """Sends a quick test email to verify Resend setup."""
-    logger.info("Sending test email...")
+    console.print("[cyan]Sending test verification email via Resend...[/cyan]")
     test_md = f"""# IssueHawk Test Report
 This is a test notification from your upgraded IssueHawk agent.
 
@@ -151,13 +175,13 @@ This is a test notification from your upgraded IssueHawk agent.
 """
     success = send_email("IssueHawk — Test Verification", test_md)
     if success:
-        logger.info("Test email sent successfully!")
+        console.print("[bold green]✔ Test email sent successfully![/bold green]")
     else:
-        logger.error("Failed to send test email. Please check your .env configuration.")
+        console.print("[bold red]✖ Failed to send test email. Please check your .env configuration.[/bold red]")
 
 def test_webhooks():
     """Sends a test notification to configured webhooks."""
-    logger.info("Testing webhooks...")
+    console.print("[cyan]Testing configured webhooks...[/cyan]")
     sample_issues = [{
         "title": "IssueHawk Webhook Verification Test",
         "url": "https://github.com",
@@ -199,10 +223,11 @@ def main():
     group.add_argument("--test-webhooks", action="store_true", help="Test configured Discord/Slack webhooks")
     
     parser.add_argument("--profile", type=str, default=None, help="Path to custom profile.yaml file")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose debug logging in terminal")
     
     args = parser.parse_args()
+    setup_logging(verbose=args.verbose)
     
-    # Handlers that do not require full credentials
     if args.view:
         display_latest_report()
         return
@@ -213,15 +238,14 @@ def main():
         test_webhooks()
         return
         
-    # Verify environment for live pipelines
     if not config.GEMINI_API_KEY:
-        logger.error("GEMINI_API_KEY environment variable is missing.")
+        console.print("[bold red]GEMINI_API_KEY environment variable is missing.[/bold red]")
         sys.exit(1)
     if not config.RESEND_API_KEY:
-        logger.error("RESEND_API_KEY environment variable is missing.")
+        console.print("[bold red]RESEND_API_KEY environment variable is missing.[/bold red]")
         sys.exit(1)
     if not config.RECIPIENT_EMAIL:
-        logger.error("RECIPIENT_EMAIL environment variable is missing in config/environment.")
+        console.print("[bold red]RECIPIENT_EMAIL environment variable is missing in config/environment.[/bold red]")
         sys.exit(1)
         
     if args.run_now:
@@ -229,29 +253,19 @@ def main():
     elif args.test_mail:
         send_test_email()
     elif args.schedule:
-        logger.info(
-            f"Starting scheduler: trigger cron, day_of_week={config.SCHEDULE_DAY}, "
-            f"time={config.SCHEDULE_HOUR:02d}:{config.SCHEDULE_MINUTE:02d} ({config.SCHEDULE_TIMEZONE})"
+        console.print(
+            f"[cyan]Starting scheduler on {config.SCHEDULE_DAY} at {config.SCHEDULE_HOUR:02d}:{config.SCHEDULE_MINUTE:02d} ({config.SCHEDULE_TIMEZONE})[/cyan]"
         )
         scheduler = BlockingScheduler(timezone=config.SCHEDULE_TIMEZONE)
-        
-        cron_kwargs = {
-            "hour": config.SCHEDULE_HOUR,
-            "minute": config.SCHEDULE_MINUTE
-        }
+        cron_kwargs = {"hour": config.SCHEDULE_HOUR, "minute": config.SCHEDULE_MINUTE}
         if config.SCHEDULE_DAY not in ("daily", "*"):
             cron_kwargs["day_of_week"] = config.SCHEDULE_DAY
             
-        scheduler.add_job(
-            run_pipeline,
-            args=[args.profile],
-            trigger="cron",
-            **cron_kwargs
-        )
+        scheduler.add_job(run_pipeline, args=[args.profile], trigger="cron", **cron_kwargs)
         try:
             scheduler.start()
         except (KeyboardInterrupt, SystemExit):
-            logger.info("Scheduler stopped.")
+            console.print("[yellow]Scheduler stopped.[/yellow]")
 
 if __name__ == "__main__":
     main()
