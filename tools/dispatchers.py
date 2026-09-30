@@ -18,27 +18,38 @@ def send_discord_webhook(webhook_url: str, issues: List[Dict[str, Any]], profile
     embeds = []
     for idx, issue in enumerate(top_issues, 1):
         score = issue.get("score", 5)
-        # Choose color based on score (Green: 0x22c55e, Indigo: 0x4f46e5, Amber: 0xf59e0b)
+        impact = issue.get("impact_score", 0)
+        foundation = issue.get("foundation")
+        
+        # Color based on score (Green: 0x22c55e, Indigo: 0x4f46e5, Amber: 0xf59e0b)
         color = 0x22c55e if score >= 8 else (0x4f46e5 if score >= 6 else 0xf59e0b)
         
         hint = issue.get("implementation_hint", "")
+        portfolio = issue.get("portfolio_rationale", "")
         hint_text = f"\n💡 **Where to start:** {hint}" if hint else ""
+        port_text = f"\n⭐ **Portfolio Uplift:** {portfolio}" if portfolio else ""
         
+        fields = [
+            {"name": "Repository", "value": f"`{issue.get('repo', 'N/A')}`", "inline": True},
+            {"name": "Match Score", "value": f"**{score}/10**", "inline": True},
+            {"name": "Difficulty", "value": f"`{issue.get('difficulty', 'intermediate')}`", "inline": True},
+        ]
+        if foundation:
+            fields.append({"name": "Foundation / Program", "value": f"🏆 **{foundation}**", "inline": True})
+        if impact:
+            fields.append({"name": "Portfolio Impact", "value": f"🚀 **{impact}/10**", "inline": True})
+            
         embed = {
             "title": f"#{idx}. {issue.get('title', 'Untitled')[:200]}",
             "url": issue.get("url", ""),
-            "description": f"**Why:** {issue.get('explanation', '')}{hint_text}",
+            "description": f"**Why:** {issue.get('explanation', '')}{port_text}{hint_text}",
             "color": color,
-            "fields": [
-                {"name": "Repository", "value": f"`{issue.get('repo', 'N/A')}`", "inline": True},
-                {"name": "Match Score", "value": f"**{score}/10**", "inline": True},
-                {"name": "Difficulty", "value": f"`{issue.get('difficulty', 'intermediate')}`", "inline": True},
-            ]
+            "fields": fields
         }
         embeds.append(embed)
         
     payload = {
-        "content": f"🦅 **IssueHawk Curation Report** for **{profile_name}** ({len(issues)} matching issues found):",
+        "content": f"🦅 **IssueHawk High-Impact Report** for **{profile_name}** ({len(issues)} opportunities found):",
         "embeds": embeds
     }
     
@@ -68,7 +79,7 @@ def send_slack_webhook(webhook_url: str, issues: List[Dict[str, Any]], profile_n
             "type": "header",
             "text": {
                 "type": "plain_text",
-                "text": f"🦅 IssueHawk Curation for {profile_name}"
+                "text": f"🦅 IssueHawk High-Impact Curation for {profile_name}"
             }
         },
         {"type": "divider"}
@@ -79,7 +90,10 @@ def send_slack_webhook(webhook_url: str, issues: List[Dict[str, Any]], profile_n
         title = issue.get("title", "Untitled")
         url = issue.get("url", "")
         repo = issue.get("repo", "")
+        foundation = issue.get("foundation")
+        found_tag = f" `[{foundation}]`" if foundation else ""
         why = issue.get("explanation", "")
+        portfolio = issue.get("portfolio_rationale", "")
         hint = issue.get("implementation_hint", "")
         
         issue_block = {
@@ -87,9 +101,10 @@ def send_slack_webhook(webhook_url: str, issues: List[Dict[str, Any]], profile_n
             "text": {
                 "type": "mrkdwn",
                 "text": (
-                    f"*<{url}|#{idx}. {title}>* — *{score}/10 Match*\n"
+                    f"*<{url}|#{idx}. {title}>*{found_tag} — *{score}/10 Match*\n"
                     f"*Repo:* `{repo}`\n"
-                    f"*Why:* {why}\n"
+                    + (f"*Portfolio Uplift:* {portfolio}\n" if portfolio else "")
+                    + f"*Why:* {why}\n"
                     + (f"*Hint:* {hint}" if hint else "")
                 )
             }

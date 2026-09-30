@@ -5,6 +5,8 @@ import requests
 from bs4 import BeautifulSoup
 import os
 
+from tools.registry import get_tier_labels, detect_foundation
+
 logger = logging.getLogger(__name__)
 
 def _fetch_html(url: str) -> str:
@@ -129,52 +131,70 @@ def scrape_upforgrabs() -> list[dict]:
 
 def collect_all_issues(profile=None) -> list[dict]:
     """
-    Run all collection sources:
-    1. Scrape goodfirstissue.dev
-    2. Scrape up-for-grabs.net
-    3. Run standard GitHub Search API query for profile languages and topics
-    Deduplicate issues by url/id, filter excluded labels, normalize schema, and return.
+    Dynamically collect issues tailored to the developer's progression tier and target programs:
+    1. Premier Open Source Foundations (CNCF, LFX, Apache, GSoC)
+    2. Dynamic GitHub Search with tier-appropriate labels and star requirements
+    3. Community sources (up-for-grabs / goodfirstissue) aligned with tier
     """
-    from tools.github_api import fetch_github_issues
+    from tools.github_api import fetch_github_issues, fetch_foundation_issues
     from tools.profile import load_profile
     
     dev_profile = profile or load_profile()
-    logger.info(f"Starting collection of all issues for profile '{dev_profile.name}'...")
+    tier = dev_profile.tier
+    logger.info(f"Collecting issues for '{dev_profile.name}' [Tier: {tier}, Track: {dev_profile.track}]...")
     all_issues = []
     
+    tier_labels = get_tier_labels(tier)
+    
+    # 1. Premier Foundation Repositories (CNCF, LFX, Apache, GSoC)
+    if dev_profile.target_foundations:
+        try:
+            foundation_issues = fetch_foundation_issues(
+                target_foundations=dev_profile.target_foundations,
+                tier=tier,
+                limit=35
+            )
+            all_issues.extend(foundation_issues)
+            logger.info("Retrieved %d candidate issues from target foundations.", len(foundation_issues))
+        except Exception as e:
+            logger.error(f"Error fetching foundation issues: {e}")
+
+    # 2. Dynamic GitHub Search (languages + topics + tier labels + min_stars)
     try:
-        gfi_issues = scrape_goodfirstissue()
-        all_issues.extend(gfi_issues)
-    except Exception as e:
-        logger.error(f"Error scraping goodfirstissue.dev: {e}")
-        
-    try:
-        ufg_issues = scrape_upforgrabs()
-        all_issues.extend(ufg_issues)
-    except Exception as e:
-        logger.error(f"Error scraping up-for-grabs.net: {e}")
-        
-    try:
-        # Fetch generic issues matching profile languages and topics
         target_languages = dev_profile.languages or ["python", "javascript", "typescript"]
         target_topics = dev_profile.topics or ["fastapi", "react", "nextjs"]
         api_issues = fetch_github_issues(
             languages=target_languages,
             topics=target_topics,
-            limit=50
+            labels=tier_labels,
+            min_stars=dev_profile.min_stars,
+            limit=40
         )
         all_issues.extend(api_issues)
     except Exception as e:
-        logger.error(f"Error fetching issues via GitHub API: {e}")
+        logger.error(f"Error fetching dynamic GitHub search issues: {e}")
+        
+    # 3. Community scrapers based on tier
+    if tier == "apprentice":
+        try:
+            gfi_issues = scrape_goodfirstissue()
+            all_issues.extend(gfi_issues)
+        except Exception as e:
+            logger.error(f"Error scraping goodfirstissue.dev: {e}")
+            
+    if tier in ("apprentice", "contributor"):
+        try:
+            ufg_issues = scrape_upforgrabs()
+            all_issues.extend(ufg_issues)
+        except Exception as e:
+            logger.error(f"Error scraping up-for-grabs.net: {e}")
         
     # Deduplicate issues and filter out excluded labels
     excluded_labels = {l.lower() for l in dev_profile.exclude_labels}
-    seen_ids = set()
     seen_urls = set()
     deduped = []
     
     for issue in all_issues:
-        issue_id = issue.get("id")
         issue_url = issue.get("url")
         if not issue_url or issue_url in seen_urls:
             continue
@@ -184,11 +204,12 @@ def collect_all_issues(profile=None) -> list[dict]:
         if any(ex in issue_labels for ex in excluded_labels):
             continue
             
+        # Ensure foundation badge is detected if present
+        if not issue.get("foundation"):
+            issue["foundation"] = detect_foundation(issue.get("repo", ""))
+            
         seen_urls.add(issue_url)
-        if issue_id:
-            seen_ids.add(issue_id)
         deduped.append(issue)
         
-    logger.info(f"Collected total of {len(deduped)} unique, non-excluded issues.")
+    logger.info(f"Collected total of {len(deduped)} unique, non-excluded candidate issues.")
     return deduped
-

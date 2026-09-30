@@ -2,8 +2,26 @@
 # Customize your tech stack, preferences, and filters below.
 
 profile:
-  name: "Default Developer"
-  skill_level: "intermediate" # beginner | intermediate | advanced
+  name: "Growth Developer"
+  github_username: "" # Optional: set your GitHub username to auto-sync merged PRs & XP
+  
+  # Progression Tier: apprentice | contributor | core_contributor | mentorship_ready
+  # - apprentice: beginner & good first issues
+  # - contributor: intermediate bugs, feature enhancements
+  # - core_contributor: core features, performance, refactoring
+  # - mentorship_ready: subsystem architecture, LFX Mentorship & GSoC candidate issues
+  tier: "core_contributor"
+  auto_graduate: true # Automatically advance tier when XP / PR milestones are reached
+
+  # Career & Target Track: lfx_gsoc_ready | core_contributor | general_open_source
+  track: "lfx_gsoc_ready"
+
+  # Target Premier Foundations & Mentorship Organizations: cncf | lfx | apache | gsoc
+  target_foundations:
+    - "cncf"
+    - "lfx"
+    - "apache"
+    - "gsoc"
   
   # Core stacks and frameworks of interest
   skills:
@@ -33,12 +51,13 @@ profile:
 
   # Preferences & tone for LLM scoring
   preferences:
-    focus: "Backend-heavy, AI/ML adjacent, Python or JS/TS repositories preferred."
-    avoid: "Pure documentation, typos, DevOps/CI-only configuration, or trivial 1-line changes."
+    focus: "Subsystem architecture, high-impact core features, performance optimizations, and LFX/GSoC portfolio issues."
+    avoid: "Pure documentation, typos, trivial 1-line changes, or dead repositories."
 
   # Issue filters
-  min_score: 5
+  min_score: 6
   max_results: 15
+  min_stars: 50 # Minimum repository stars for non-foundation queries
   exclude_labels:
     - "documentation"
     - "docs"

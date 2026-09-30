@@ -61,7 +61,7 @@
           <tr>
             <td class="content-pad" style="padding: 36px 32px 24px 32px; text-align: center; border-bottom: 1px solid #f1f5f9;">
               
-              <!-- Brand Logo Image (hosted on GitHub raw CDN for 100% Gmail compatibility) -->
+              <!-- Brand Logo Image -->
               <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 16px auto;">
                 <tr>
                   <td align="center">
@@ -77,21 +77,21 @@
                 {{ title }}
               </h1>
               <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.4;">
-                Curated autonomously for <strong style="color: #334155;">{{ profile_name }}</strong>
+                High-Impact Curation for <strong style="color: #334155;">{{ profile_name }}</strong>
               </p>
 
-              <!-- Executive Stats Bar -->
+              <!-- Executive Progression Stats Bar -->
               {% if issues %}
               <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 20px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
                 <tr>
                   <td class="metric-cell" align="center" style="padding: 10px 8px; font-size: 12px; color: #64748b;">
-                    🎯 <strong style="color: #0f172a;">{{ issues|length }}</strong> Opportunities
+                    🎯 <strong style="color: #0f172a;">{{ issues|length }}</strong> High-Impact Issues
                   </td>
                   <td class="metric-cell" align="center" style="padding: 10px 8px; font-size: 12px; color: #64748b; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
-                    ⚡ Level: <strong style="color: #2563eb;">{{ (profile.skill_level if profile else 'Intermediate')|capitalize }}</strong>
+                    ⚡ Tier: <strong style="color: #2563eb;">{{ (profile.tier if profile and profile.tier else 'Contributor')|replace('_', ' ')|title }}</strong>
                   </td>
                   <td class="metric-cell" align="center" style="padding: 10px 8px; font-size: 12px; color: #64748b;">
-                    🗓️ Cadence: <strong style="color: #0f172a;">{{ cadence|upper }}</strong>
+                    🏆 Track: <strong style="color: #0f172a;">{{ (profile.track if profile and profile.track else 'LFX / GSoC')|replace('_', ' ')|upper }}</strong>
                   </td>
                 </tr>
               </table>
@@ -122,8 +122,13 @@
                         <tr>
                           <td>
                             <span style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; font-weight: 700; color: #1d4ed8; background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.04em;">
-                              ★ TOP OPPORTUNITY
+                              ★ TOP PORTFOLIO ANCHOR
                             </span>
+                            {% if hero.foundation %}
+                            <span style="margin-left: 6px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; font-weight: 700; color: #6b21a8; background-color: #f3e8ff; border: 1px solid #d8b4fe; padding: 3px 8px; border-radius: 4px;">
+                              {{ hero.foundation }}
+                            </span>
+                            {% endif %}
                           </td>
                           <td align="right">
                             <span style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 12px; font-weight: 800; color: #15803d; background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 3px 9px; border-radius: 4px;">
@@ -150,7 +155,19 @@
                           • {{ hero.difficulty|capitalize }}
                         </span>
                         {% endif %}
+                        {% if hero.impact_score %}
+                        <span style="margin-left: 6px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; color: #0284c7; background-color: #e0f2fe; padding: 2px 6px; border-radius: 4px;">
+                          Impact: {{ hero.impact_score }}/10
+                        </span>
+                        {% endif %}
                       </div>
+
+                      <!-- Portfolio Rationale -->
+                      {% if hero.portfolio_rationale %}
+                      <div style="margin: 0 0 12px 0; font-size: 12px; color: #1e3a8a; background-color: #eff6ff; padding: 8px 10px; border-radius: 6px; border: 1px solid #bfdbfe; line-height: 1.4;">
+                        <strong style="color: #1d4ed8;">Portfolio Uplift:</strong> {{ hero.portfolio_rationale }}
+                      </div>
+                      {% endif %}
 
                       <!-- Why it fits -->
                       <p style="margin: 0 0 14px 0; font-size: 13px; color: #334155; line-height: 1.5;">
@@ -184,7 +201,7 @@
                 <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin: 28px 0 14px 0; border-top: 1px solid #e2e8f0;">
                   <tr>
                     <td style="padding-top: 18px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #94a3b8; text-transform: uppercase;">
-                      ADDITIONAL MATCHES ({{ issues|length - 1 }})
+                      HIGH-IMPACT CONTRIBUTIONS ({{ issues|length - 1 }})
                     </td>
                   </tr>
                 </table>
@@ -214,22 +231,39 @@
                         </tr>
                       </table>
 
-                      <!-- Meta: Repo -->
+                      <!-- Meta: Repo & Foundation -->
                       <div style="font-size: 12px; color: #64748b; margin-bottom: 10px;">
                         <span style="font-family: ui-monospace, SFMono-Regular, monospace; color: #475569; background-color: #f8fafc; padding: 2px 6px; border-radius: 4px; border: 1px solid #e2e8f0;">
                           📁 {{ issue.repo }}
                         </span>
+                        {% if issue.foundation %}
+                        <span style="margin-left: 4px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 10px; font-weight: 700; color: #6b21a8; background-color: #f3e8ff; border: 1px solid #d8b4fe; padding: 1px 5px; border-radius: 3px;">
+                          {{ issue.foundation }}
+                        </span>
+                        {% endif %}
                         {% if issue.difficulty %}
                         <span style="margin-left: 4px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 11px; color: #64748b;">
                           • {{ issue.difficulty }}
                         </span>
                         {% endif %}
+                        {% if issue.impact_score %}
+                        <span style="margin-left: 4px; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 10px; color: #0369a1; background-color: #e0f2fe; padding: 1px 5px; border-radius: 3px;">
+                          Impact: {{ issue.impact_score }}/10
+                        </span>
+                        {% endif %}
                       </div>
 
                       <!-- Why it fits -->
-                      <p style="margin: 0 0 10px 0; font-size: 13px; color: #475569; line-height: 1.4;">
+                      <p style="margin: 0 0 8px 0; font-size: 13px; color: #475569; line-height: 1.4;">
                         {{ issue.explanation }}
                       </p>
+
+                      <!-- Portfolio Rationale -->
+                      {% if issue.portfolio_rationale %}
+                      <p style="margin: 0 0 10px 0; font-size: 12px; color: #1e40af; line-height: 1.4;">
+                        <em>💡 Portfolio Uplift:</em> {{ issue.portfolio_rationale }}
+                      </p>
+                      {% endif %}
 
                       <!-- Tactical Hint -->
                       {% if issue.implementation_hint %}
@@ -260,7 +294,7 @@
           <tr>
             <td style="padding: 24px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
               <p style="margin: 0 0 4px 0; font-size: 12px; color: #64748b;">
-                Sent by <strong style="color: #0f172a;">IssueHawk</strong> • Autonomous GitHub Issue Intelligence
+                Sent by <strong style="color: #0f172a;">IssueHawk</strong> • Career Acceleration for LFX & GSoC
               </p>
               <p style="margin: 0; font-size: 11px; color: #94a3b8;">
                 Target stacks: {{ (profile.skills if profile else [])|join(', ') }}

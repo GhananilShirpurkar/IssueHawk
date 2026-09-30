@@ -18,6 +18,12 @@ from tools.reporter import generate_markdown_report
 from tools.mailer import send_email
 from tools.dispatchers import dispatch_webhooks
 from tools.viewer import display_latest_report, display_issue_table, parse_markdown_report_file, REPORTS_DIR
+from tools.evolution import (
+    get_developer_status,
+    record_completed_issue,
+    sync_github_activity,
+    format_progress_panel
+)
 
 console = Console()
 
@@ -52,25 +58,29 @@ def setup_logging(verbose: bool = False):
 logger = logging.getLogger("issuehawk")
 
 def run_pipeline(profile_path=None, force: bool = False):
-    """Runs the full upgraded IssueHawk agent pipeline with a clean Rich stepper."""
+    """Runs the full upgraded IssueHawk career acceleration pipeline."""
     dev_profile = load_profile(profile_path)
+    dev_status = get_developer_status(dev_profile)
     
-    # 1. Header Card
+    # 1. Header Card with progression info
     skills_preview = ", ".join(dev_profile.skills[:4]) + ("..." if len(dev_profile.skills) > 4 else "")
+    foundations_preview = ", ".join([f.upper() for f in dev_profile.target_foundations])
     console.print()
     console.print(Panel(
         f"[bold white]Target Stack:[/bold white] [cyan]{skills_preview}[/cyan]\n"
-        f"[bold white]Seniority:[/bold white] [green]{dev_profile.skill_level.capitalize()}[/green]  •  "
-        f"[bold white]Threshold:[/bold white] [yellow]>={dev_profile.min_score}/10[/yellow]  •  "
+        f"[bold white]Progression:[/bold white] [{dev_status['color']}]{dev_status['badge']}[/{dev_status['color']}]  •  "
+        f"[bold white]Career Track:[/bold white] [yellow]{dev_profile.track.replace('_', ' ').title()}[/yellow]\n"
+        f"[bold white]Target Foundations:[/bold white] [magenta]{foundations_preview}[/magenta]  •  "
+        f"[bold white]Min Score:[/bold white] [green]>={dev_profile.min_score}/10[/green]  •  "
         f"[bold white]Limit:[/bold white] [white]{dev_profile.max_results} issues[/white]",
-        title=f"🦅 [bold]IssueHawk[/bold] — Curation Run: [bold cyan]{dev_profile.name}[/bold cyan]",
-        border_style="blue",
+        title=f"🦅 [bold]IssueHawk[/bold] — High-Impact Curation: [bold cyan]{dev_profile.name}[/bold cyan]",
+        border_style=dev_status["color"],
         padding=(0, 2)
     ))
     console.print()
 
     # Step 1: Memory init & Scrape
-    with console.status("[bold cyan][1/5] Collecting open issues across GitHub, goodfirstissue.dev, up-for-grabs..."):
+    with console.status(f"[bold cyan][1/5] Collecting open issues across Foundations ({foundations_preview}) & GitHub..."):
         init_db()
         raw_issues = collect_all_issues(profile=dev_profile)
 
@@ -110,7 +120,8 @@ def run_pipeline(profile_path=None, force: bool = False):
                 status=rej.get("rejection_status", "claimed"),
                 score=0,
                 explanation=rej.get("rejection_reason", "Filtered during triage"),
-                ttl_days=14
+                ttl_days=14,
+                foundation=rej.get("foundation", "")
             )
 
     if not accepted_issues:
@@ -118,8 +129,8 @@ def run_pipeline(profile_path=None, force: bool = False):
         return
     console.print(f"  [green]✔[/green] [bold white][3/5] Triage complete:[/bold white] [cyan]{len(accepted_issues)}[/cyan] active candidates ([dim]{len(rejected_issues)} claimed/stale filtered[/dim]).")
 
-    # Step 4: AI Scoring
-    with console.status(f"[bold cyan][4/5] Scoring {len(accepted_issues)} issues with Gemini 2.5 Flash..."):
+    # Step 4: AI Scoring with High-Impact Portfolio Rubric
+    with console.status(f"[bold cyan][4/5] Scoring {len(accepted_issues)} issues with High-Impact Portfolio Rubric..."):
         scored_issues = score_issues(accepted_issues, profile=dev_profile)
         min_score = dev_profile.min_score
         relevant_issues = []
@@ -134,6 +145,9 @@ def run_pipeline(profile_path=None, force: bool = False):
                     score=score,
                     explanation=issue.get("explanation", "Below relevance threshold"),
                     hint=issue.get("implementation_hint", ""),
+                    impact_score=issue.get("impact_score", 0),
+                    portfolio_rationale=issue.get("portfolio_rationale", ""),
+                    foundation=issue.get("foundation", ""),
                     ttl_days=14
                 )
 
@@ -142,13 +156,14 @@ def run_pipeline(profile_path=None, force: bool = False):
         return
 
     top_issues = relevant_issues[:dev_profile.max_results]
-    console.print(f"  [green]✔[/green] [bold white][4/5] AI Scoring complete:[/bold white] [cyan]{len(top_issues)}[/cyan] high-relevance opportunities curated.")
+    console.print(f"  [green]✔[/green] [bold white][4/5] AI Scoring complete:[/bold white] [cyan]{len(top_issues)}[/cyan] high-impact opportunities curated.")
 
     # Step 5: Reports & Dispatch
     with console.status("[bold cyan][5/5] Generating reports and dispatching notifications..."):
         report_path, markdown_content = generate_markdown_report(top_issues, profile_name=dev_profile.name)
         date_str = datetime.now().strftime("%Y-%m-%d")
-        subject = f"IssueHawk Report — {date_str} ({len(top_issues)} Opportunities)"
+        tier_title = dev_status['tier'].replace('_', ' ').title()
+        subject = f"IssueHawk [{tier_title}] Report — {date_str} ({len(top_issues)} High-Impact Opportunities)"
         email_success = send_email(subject, markdown_content, issues=top_issues, profile_name=dev_profile.name)
         dispatch_webhooks(top_issues, profile_name=dev_profile.name)
 
@@ -159,18 +174,60 @@ def run_pipeline(profile_path=None, force: bool = False):
                     status="emailed",
                     score=issue.get("score", 0),
                     explanation=issue.get("explanation", ""),
-                    hint=issue.get("implementation_hint", "")
+                    hint=issue.get("implementation_hint", ""),
+                    impact_score=issue.get("impact_score", 0),
+                    portfolio_rationale=issue.get("portfolio_rationale", ""),
+                    foundation=issue.get("foundation", "")
                 )
 
     console.print(f"  [green]✔[/green] [bold white][5/5] Delivery complete:[/bold white] Report saved & dispatched via email/webhooks.")
     console.print()
 
     # Final Summary Table
-    display_issue_table(top_issues, title=f"🦅 IssueHawk Run Complete • {len(top_issues)} Issues Curated for {dev_profile.name}")
+    display_issue_table(top_issues, title=f"🦅 IssueHawk Run Complete • {len(top_issues)} Opportunities for {dev_profile.name}")
+
+def show_progress(profile_path=None):
+    """Displays developer progression status panel."""
+    dev_profile = load_profile(profile_path)
+    status = get_developer_status(dev_profile)
+    console.print()
+    console.print(format_progress_panel(status))
+    console.print()
+
+def complete_contribution(url: str, title: str = "", repo: str = "", difficulty: str = "intermediate"):
+    """Records a completed issue contribution and awards XP."""
+    res = record_completed_issue(url, title=title, repo=repo, difficulty=difficulty)
+    console.print()
+    console.print(f"[bold green]✔ Issue marked as completed![/bold green] [cyan]{res['url']}[/cyan]")
+    console.print(f"• Awarded [bold yellow]+{res['xp_gained']} XP[/bold yellow] (Total XP: [bold cyan]{res['total_xp']}[/bold cyan])")
+    if res["graduated"]:
+        console.print(f"[bold magenta]🎉 CONGRATULATIONS! You graduated from {res['old_tier']} to {res['new_tier'].upper()}![/bold magenta]")
+    else:
+        console.print(f"• Current Tier: [bold cyan]{res['new_tier'].replace('_', ' ').title()}[/bold cyan]")
+    console.print()
+
+def sync_profile(username: str = None):
+    """Syncs merged PRs from GitHub to update progression."""
+    console.print("[cyan]Syncing contributions from GitHub API...[/cyan]")
+    res = sync_github_activity(username=username)
+    if not res.get("success"):
+        console.print(f"[bold red]✖ {res.get('message')}[/bold red]")
+        return
+        
+    console.print(f"[bold green]✔ Successfully synced with @{res['username']}![/bold green]")
+    console.print(f"• Total Merged PRs on GitHub: [bold cyan]{res['total_merged_prs']}[/bold cyan]")
+    if res['new_prs'] > 0:
+        console.print(f"• Detected [bold green]{res['new_prs']} new merged PR(s)[/bold green] (+{res['xp_boost']} XP awarded!)")
+    else:
+        console.print("• No new merged PRs since last sync.")
+    console.print(f"• Total XP: [bold yellow]{res['total_xp']}[/bold yellow] • Tier: [bold cyan]{res['tier'].replace('_', ' ').title()}[/bold cyan]")
+    if res.get("graduated"):
+        console.print(f"[bold magenta]🎉 PROMOTION: You graduated to {res['tier'].upper()}![/bold magenta]")
+    console.print()
 
 def send_test_email():
-    """Sends a rich newsletter test email containing real/sample curated issues."""
-    console.print("[cyan]Sending full curated newsletter preview email via Resend...[/cyan]")
+    """Sends a rich newsletter test email containing premier foundation & high-impact curated issues."""
+    console.print("[cyan]Sending high-impact curated newsletter preview email via Resend...[/cyan]")
     dev_profile = load_profile()
     
     report_files = sorted(glob.glob(os.path.join(REPORTS_DIR, "report_*.md")), reverse=True)
@@ -181,43 +238,52 @@ def send_test_email():
     if not sample_issues:
         sample_issues = [
             {
+                "title": "Implement adaptive rate-limiting and retry backoff for distributed streaming runner",
+                "url": "https://github.com/kubernetes/kubernetes/issues/112450",
+                "repo": "kubernetes/kubernetes",
+                "foundation": "CNCF",
+                "score": 10,
+                "impact_score": 9,
+                "difficulty": "advanced",
+                "portfolio_rationale": "High-visibility CNCF subsystem contribution demonstrating distributed systems and concurrency expertise.",
+                "explanation": "Directly targets high-impact cloud-native systems architecture. Exceptional portfolio uplift for LFX Mentorship.",
+                "implementation_hint": "Inspect `pkg/controller/daemon/` and analyze how work queues handle token replenishment under network throttling.",
+                "labels": ["help wanted", "enhancement", "sig/node"]
+            },
+            {
                 "title": "Add async streaming support for LangGraph execution graphs in FastAPI worker nodes",
                 "url": "https://github.com/langchain-ai/langgraph/issues/1124",
                 "repo": "langchain-ai/langgraph",
+                "foundation": "GSoC",
                 "score": 9,
+                "impact_score": 8,
                 "difficulty": "intermediate",
+                "portfolio_rationale": "Strong showcase of modern Python async workflows, agent architectures, and ecosystem integration.",
                 "explanation": "Directly matches your FastAPI and LangGraph stack. High impact with clear scope.",
                 "implementation_hint": "Check `langgraph/pregel/runner.py` and inspect how `TaskStream` yields state chunks. Implement an async generator adapter.",
-                "labels": ["good first issue", "enhancement"]
+                "labels": ["help wanted", "enhancement"]
             },
             {
-                "title": "Fix memory leak in RAG vector similarity cache during high concurrency",
-                "url": "https://github.com/chroma-core/chroma/issues/2405",
-                "repo": "chroma-core/chroma",
-                "score": 8,
-                "difficulty": "intermediate",
-                "explanation": "Great fit for Python & RAG pipeline optimization with clear reproduction steps.",
-                "implementation_hint": "Inspect the LRU eviction policy in `chromadb/segment/impl/vector/cache.py` to ensure expired keys release their underlying numpy arrays.",
-                "labels": ["bug", "good first issue"]
-            },
-            {
-                "title": "Add React 19 forwardRef migration codemod for UI component library",
-                "url": "https://github.com/shadcn-ui/ui/issues/3902",
-                "repo": "shadcn-ui/ui",
-                "score": 7,
-                "difficulty": "beginner",
-                "explanation": "Matches your React frontend interests and clean architecture conventions.",
-                "implementation_hint": "Look at `packages/cli/src/commands/migrate.ts` and apply the standard AST transform to remove forwardRef wrappers.",
-                "labels": ["frontend", "help wanted"]
+                "title": "Optimize Arrow IPC deserialization zero-copy memory buffers for columnar queries",
+                "url": "https://github.com/apache/arrow/issues/39021",
+                "repo": "apache/arrow",
+                "foundation": "Apache",
+                "score": 9,
+                "impact_score": 9,
+                "difficulty": "advanced",
+                "portfolio_rationale": "Benchmark Apache Software Foundation issue demonstrating deep low-level memory efficiency and data systems design.",
+                "explanation": "Ideal for showcasing high-performance backend engineering on Apache infrastructure.",
+                "implementation_hint": "Look into `cpp/src/arrow/ipc/reader.cc` and verify buffer alignment in SIMD vector paths.",
+                "labels": ["help wanted", "performance"]
             }
         ]
         
     date_str = datetime.now().strftime("%Y-%m-%d")
-    subject = f"IssueHawk Preview — {date_str} ({len(sample_issues)} Opportunities)"
+    subject = f"IssueHawk High-Impact Preview — {date_str} ({len(sample_issues)} Opportunities)"
     report_path, markdown_content = generate_markdown_report(sample_issues, profile_name=dev_profile.name)
     success = send_email(subject, markdown_content, issues=sample_issues, profile_name=dev_profile.name)
     if success:
-        console.print(f"[bold green]✔ Full preview newsletter with {len(sample_issues)} curated issues sent successfully to {config.RECIPIENT_EMAIL}![/bold green]")
+        console.print(f"[bold green]✔ High-impact preview newsletter with {len(sample_issues)} curated issues sent successfully to {config.RECIPIENT_EMAIL}![/bold green]")
     else:
         console.print("[bold red]✖ Failed to send preview email. Please check your .env configuration.[/bold red]")
 
@@ -225,11 +291,14 @@ def test_webhooks():
     """Sends a test notification to configured webhooks."""
     console.print("[cyan]Testing configured webhooks...[/cyan]")
     sample_issues = [{
-        "title": "IssueHawk Webhook Verification Test",
-        "url": "https://github.com",
-        "repo": "issuehawk/core",
+        "title": "IssueHawk High-Impact Webhook Verification Test",
+        "url": "https://github.com/kubernetes/kubernetes",
+        "repo": "kubernetes/kubernetes",
+        "foundation": "CNCF",
         "score": 10,
-        "difficulty": "intermediate",
+        "impact_score": 9,
+        "difficulty": "advanced",
+        "portfolio_rationale": "High-impact cloud-native contribution anchor for LFX Mentorship.",
         "explanation": "This is a test event confirming your webhook integration is operational.",
         "implementation_hint": "No action required — your IssueHawk dispatch pipeline is ready."
     }]
@@ -255,7 +324,7 @@ def show_stats():
     console.print(Panel(content, title="🦅 IssueHawk Memory Statistics", border_style="cyan"))
 
 def main():
-    parser = argparse.ArgumentParser(description="IssueHawk — Autonomous GitHub Issue Curation Agent")
+    parser = argparse.ArgumentParser(description="IssueHawk — Autonomous Career Accelerator for Open-Source & Mentorships (LFX/GSoC)")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--run-now", action="store_true", help="Run the full pipeline immediately")
     group.add_argument("--schedule", action="store_true", help="Start the scheduler to run on the configured schedule")
@@ -263,7 +332,11 @@ def main():
     group.add_argument("--view", action="store_true", help="View the latest curated report in the terminal")
     group.add_argument("--stats", action="store_true", help="Display memory and deduplication statistics")
     group.add_argument("--test-webhooks", action="store_true", help="Test configured Discord/Slack webhooks")
+    group.add_argument("--progress", action="store_true", help="Display developer progression tier, XP, and milestones")
+    group.add_argument("--complete", type=str, metavar="URL", help="Mark an issue URL as completed to gain XP and graduate tier")
+    group.add_argument("--sync-profile", action="store_true", help="Sync merged PRs from GitHub to update XP and tier")
     
+    parser.add_argument("--username", type=str, default=None, help="GitHub username for profile sync")
     parser.add_argument("--profile", type=str, default=None, help="Path to custom profile.yaml file")
     parser.add_argument("--force", action="store_true", help="Bypass memory cache deduplication and force evaluation of all scraped issues")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose debug logging in terminal")
@@ -279,6 +352,15 @@ def main():
         return
     elif args.test_webhooks:
         test_webhooks()
+        return
+    elif args.progress:
+        show_progress(profile_path=args.profile)
+        return
+    elif args.complete:
+        complete_contribution(url=args.complete)
+        return
+    elif args.sync_profile:
+        sync_profile(username=args.username)
         return
         
     if not config.GEMINI_API_KEY:

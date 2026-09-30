@@ -24,10 +24,13 @@ def generate_markdown_report(
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     prof = load_profile()
     active_profile = profile_name or prof.name
+    tier_name = getattr(prof, "tier", "contributor").replace("_", " ").title()
+    track_name = getattr(prof, "track", "lfx_gsoc_ready").replace("_", " ").title()
     
     markdown_lines = [
         f"# IssueHawk Curation Report — {date_str}",
-        f"Curated for **{active_profile}** ({len(top_issues)} Issues Selected)",
+        f"Curated for **{active_profile}** • Tier: **{tier_name}** • Track: **{track_name}**",
+        f"({len(top_issues)} High-Impact Opportunities Curated)",
         "",
         "---",
         ""
@@ -40,18 +43,24 @@ def generate_markdown_report(
             title = issue.get("title", "No Title")
             url = issue.get("url", "#")
             repo = issue.get("repo", "Unknown Repo")
+            foundation = issue.get("foundation")
+            foundation_str = f" [{foundation}]" if foundation else ""
             score = issue.get("score", 0)
+            impact_score = issue.get("impact_score", 0)
             difficulty = issue.get("difficulty", "intermediate")
             explanation = issue.get("explanation", "No explanation provided.")
+            portfolio_rationale = issue.get("portfolio_rationale", "")
             hint = issue.get("implementation_hint", "")
             labels = ", ".join(issue.get("labels", [])) or "None"
             
             entry = [
-                f"### {idx}. [{title}]({url}) — Score: {score}/10 [{difficulty.upper()}]",
+                f"### {idx}. [{title}]({url}) — Score: {score}/10 [Impact: {impact_score}/10] [{difficulty.upper()}]{foundation_str}",
                 f"**Repository:** `{repo}`",
                 f"**Labels:** {labels}",
                 f"**Why this fits you:** {explanation}"
             ]
+            if portfolio_rationale:
+                entry.append(f"**Portfolio Uplift:** {portfolio_rationale}")
             if hint:
                 entry.append(f"**Where to start:** {hint}")
             entry.extend(["", "---", ""])
